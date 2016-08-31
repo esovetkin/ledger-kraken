@@ -50,9 +50,24 @@ kraken.load_key("keys/albus-test.key")
 # connection handler. \todo set timeout variable properly (depending on tier)
 #conn = kraken.Connection("api.kraken.com",timeout=5)
 
-# function to query all ledger entries make 5 seconds pause before
-# each transaction. Function should be called only once in a life
 def query_all_entries(kraken, query, keyname, start, end, timeout=5):
+    """Query all entries present in kraken database
+
+    Kraken allows only to get limited amount of data at a
+    time. Therefore, we split this on several steps. See notes above
+    about 'call counter'
+
+    Note, this function is supposed to be used only once in a life.
+    
+    kraken --- krakenex API
+    query  --- query name of the API
+    keyname --- keyname in the resulting dictionary
+    start --- earliest time point (in seconds from epoch)
+    end --- latest time point (in seconds from epoch)
+    timeout --- timeout in seconds before queries
+
+    return --- dictionary
+    """
     
     # dictionary with extra parameters to the query
     arg=dict()
@@ -124,3 +139,10 @@ def time2date(t):
 # read json code    
 with open('data/ledger.json', 'r') as fp:
     data = json.load(fp)
+
+
+
+def reformat_deposit_withdraw(ledger, kraken_account, ):
+    """
+    Reformat deposits and withdrawals to ledger format
+    """
