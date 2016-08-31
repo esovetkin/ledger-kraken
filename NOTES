@@ -1,0 +1,11 @@
+* How to find get a change in trades.
+
+  Keep a database of all transactions.
+
+* Keep a database of all orders
+
+* Convert database to ledger. Starting point?
+
+* What information I use to make an order
+
+  Volume, latest prices, order-book
