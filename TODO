@@ -1,0 +1,14 @@
+
+* function print dict in the ledger format
+
+* function to convert withdrawals and deposits
+
+* function which downloads new data, i.e. until the present entry in
+  the database
+
+* function to check ledger file for the presence of some entry
+
+* Public data functions:
+
+  + nice output for the volume distribution, order book, etc
+
