@@ -12,43 +12,8 @@ import json
 # for time and sleep
 import time
 
-# types of query_private:
-# * Balance 
-# * TradeBalance
-# * OpenOrders
-# * ClosedBalance
-# * QueryOrders
-# * TradesHistory
-# * QueryTrades
-# * OpenPositions
-# * Ledgers
-# * QueryLedgers
+from collections import defaultdict 
 
-
-# init krakenex API
-kraken = krakenex.API()
-kraken.load_key("keys/albus-test.key")
-
-# query orders
-#t = k.query_private("OpenOrders")
-
-# set tier, for proper timeouts before calls:
-# Every user of our API has a "call counter" which starts at 0.
-
-# Ledger/trade history calls increase the counter by 2.
-
-# Place/cancel order calls do not affect the counter.
-
-# All other API calls increase the counter by 1.
-
-# Tier 2 users have a maximum of 15 and their count gets reduced by 1
-# every 3 seconds. Tier 3 and 4 users have a maximum of 20; the count
-# is reduced by 1 every 2 seconds for tier 3 users, and is reduced by
-# 1 every 1 second for tier 4 users.
-#tier=3
-
-# connection handler. \todo set timeout variable properly (depending on tier)
-#conn = kraken.Connection("api.kraken.com",timeout=5)
 
 # function to query all ledger entries make 5 seconds pause before
 # each transaction. Function should be called only once in a life
@@ -121,6 +86,85 @@ def time2date(t):
 #     json.dump(trades, fp, indent = 2)
 
 
-# read json code    
-with open('data/ledger.json', 'r') as fp:
-    data = json.load(fp)
+
+
+def reformat_trades():
+    """
+    Reformat raw data from query to human readable format. 
+
+    Return dict:
+        dict - date - buy/sell - {cost, fee, vol, price }
+
+    Output:
+        trades_h.json
+    """
+
+    #load the raw data
+    with open('data/trades.json', 'r') as fp:
+        trades = json.load(fp)
+
+    tradesh=defaultdict((lambda :defaultdict(dict))) #dict with default dict of dict
+    for tid,trade in trades.items():
+        #collect the information 
+        tdate = time2date(trade["time"])
+        ttype = trade["type"]
+        tfee  = float(trade["fee"])
+        tcost = float(trade["cost"])
+        tvol  = float(trade["vol"])
+        tpair = [trade["pair"][1:4],trade["pair"][5:]]
+        #place to the new dict 
+        tradesh[tdate][ttype]={"id":tid,"fee":tfee,\
+                               "cost":tcost,"vol":tvol,\
+                               "pair":tpair}
+    #write to file
+    with open('data/trades_h.json','w') as fp:
+        json.dump(tradesh, fp, indent = 2)
+
+
+
+if __name__ == '__main__':
+    """
+    Describe what it does 
+    """
+
+    # types of query_private:
+    # * Balance 
+    # * TradeBalance
+    # * OpenOrders
+    # * ClosedBalance
+    # * QueryOrders
+    # * TradesHistory
+    # * QueryTrades
+    # * OpenPositions
+    # * Ledgers
+    # * QueryLedgers
+
+
+    # init krakenex API
+#   kraken = krakenex.API()
+#   kraken.load_key("keys/albus-test.key")
+
+    # query orders
+    #t = k.query_private("OpenOrders")
+
+    # set tier, for proper timeouts before calls:
+    # Every user of our API has a "call counter" which starts at 0.
+
+    # Ledger/trade history calls increase the counter by 2.
+
+    # Place/cancel order calls do not affect the counter.
+
+    # All other API calls increase the counter by 1.
+
+    # Tier 2 users have a maximum of 15 and their count gets reduced by 1
+    # every 3 seconds. Tier 3 and 4 users have a maximum of 20; the count
+    # is reduced by 1 every 2 seconds for tier 3 users, and is reduced by
+    # 1 every 1 second for tier 4 users.
+    #tier=3
+
+    # connection handler. \todo set timeout variable properly (depending on tier)
+    #conn = kraken.Connection("api.kraken.com",timeout=5)
+
+    
+    reformat_trades()
+
