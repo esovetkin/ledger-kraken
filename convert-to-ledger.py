@@ -99,17 +99,26 @@ def query_all_entries(kraken, query, keyname, start, end, timeout=5):
 
     return data
 
+def time2date(t):
+    """
+    Convert time to ledger date format
+    
+    time   --- time in seconds since epoch
+    return --- string of date in ledger format
+    """
+    return time.strftime('%Y/%m/%d', time.localtime(t))
+
 # # get ledger history
 # ledger = query_all_entries(kraken,'Ledgers','ledger',1451602800,1472643007,5)
 # # save in json data
 # with open('data/ledger.json','w') as fp:
-#    json.dump(ledger, fp)
+#    json.dump(ledger, fp, indent = 2)
 
 # # get trades history
 # trades = query_all_entries(kraken,'TradesHistory','trades',1451602800,1472643007,5)
 # # save in json data
 # with open('data/trades.json','w') as fp:
-#     json.dump(trades, fp)
+#     json.dump(trades, fp, indent = 2)
 
 
 # read json code    
