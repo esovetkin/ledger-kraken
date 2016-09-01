@@ -136,10 +136,11 @@ def reformat_trades():
         tcost = float(trade["cost"])
         tvol  = float(trade["vol"])
         tpair = [trade["pair"][1:4],trade["pair"][5:]]
+        tprice = float(trade["price"])
         #place to the new dict 
         tradesh[tdate][ttype]={"id":tid,"fee":tfee,\
                                "cost":tcost,"vol":tvol,\
-                               "pair":tpair}
+                               "pair":tpair, "price":tprice}
     #write to file
     with open('data/trades_h.json','w') as fp:
         json.dump(tradesh, fp, indent = 2)
