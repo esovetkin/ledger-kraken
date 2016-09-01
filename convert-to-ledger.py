@@ -178,40 +178,9 @@ if __name__ == '__main__':
     Describe what it does 
     """
 
-    # types of query_private:
-    # * Balance 
-    # * TradeBalance
-    # * OpenOrders
-    # * ClosedBalance
-    # * QueryOrders
-    # * TradesHistory
-    # * QueryTrades
-    # * OpenPositions
-    # * Ledgers
-    # * QueryLedgers
-
-
     # init krakenex API
     kraken = krakenex.API()
     kraken.load_key("keys/albus-test.key")
-
-    # query orders
-    #t = k.query_private("OpenOrders")
-
-    # set tier, for proper timeouts before calls:
-    # Every user of our API has a "call counter" which starts at 0.
-
-    # Ledger/trade history calls increase the counter by 2.
-
-    # Place/cancel order calls do not affect the counter.
-
-    # All other API calls increase the counter by 1.
-
-    # Tier 2 users have a maximum of 15 and their count gets reduced by 1
-    # every 3 seconds. Tier 3 and 4 users have a maximum of 20; the count
-    # is reduced by 1 every 2 seconds for tier 3 users, and is reduced by
-    # 1 every 1 second for tier 4 users.
-    #tier=3
 
     # connection handler. \todo set timeout variable properly (depending on tier)
     #conn = kraken.Connection("api.kraken.com",timeout=5)
@@ -233,9 +202,9 @@ if __name__ == '__main__':
     with open('data/ledger.json', 'r') as fp:
         ledger = json.load(fp)
 
-    entries = reformat(ledger, entry_type="ledger")
+    ledger = reformat(ledger, entry_type="ledger")
         
-    entries = convert2ledger([x['refid'] for x in entries], entries)
+    entries = convert2ledger([x['refid'] for x in ledger], ledger)
     
     
     # write ledger file    
