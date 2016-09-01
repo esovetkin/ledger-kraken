@@ -97,7 +97,7 @@ def reformat_ledger(ledgers):
     return --- dict:
     """
 
-    ledgerh=defaultdict((lambda :defaultdict(dict))) #dict with defautl dict of dict
+    ledgerh=list() #dict with defautl dict of dict
     for lid, ledger in ledgers.items():
         tdate = time2date(ledger["time"])
         ttype = ledger["type"]
@@ -106,9 +106,10 @@ def reformat_ledger(ledgers):
         tfee = float(ledger["fee"])
         tbalance = float(ledger["balance"])
         tamount = float(ledger["amount"])
-        ledgerh[tdate][ttype]={"id":tid, "fee":tfee,\
-                               "amount":tamount,"balance":tbalance,\
-                               "asset":tasset}
+        ledgerh.append({"id":tid, "fee":tfee,\
+                        "amount":tamount,"balance":tbalance,\
+                        "asset":tasset, "date":tdate,\
+                        "type":ttype})
     return ledgerh
         
 
@@ -122,7 +123,7 @@ def reformat_trades(trades):
         dict - date - buy/sell - {cost, fee, vol, price }
     """
 
-    tradesh=defaultdict((lambda :defaultdict(dict))) #dict with default dict of dict
+    tradesh=list()
     for tid,trade in trades.items():
         #collect the information 
         tdate = time2date(trade["time"])
@@ -133,9 +134,10 @@ def reformat_trades(trades):
         tpair = [trade["pair"][1:4],trade["pair"][5:]]
         tprice = float(trade["price"])
         #place to the new dict 
-        tradesh[tdate][ttype]={"id":tid,"fee":tfee,\
-                               "cost":tcost,"vol":tvol,\
-                               "pair":tpair, "price":tprice}
+        tradesh.append({"id":tid,"fee":tfee,\
+                        "cost":tcost,"vol":tvol,\
+                        "pair":tpair,"price":tprice,\
+                        "date":tdate,"type":ttype})
 
     return tradesh
 
