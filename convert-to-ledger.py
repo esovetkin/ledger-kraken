@@ -37,7 +37,6 @@ def query_all_entries(kraken, query, keyname, start, end, timeout=5):
 
     data = dict()
 
-
     last_end = 0
     
     while (arg['start'] < arg['end']):
@@ -152,6 +151,39 @@ def trade2ledger(entry):
 
     return res
 
+def deposit2ledger(entry):
+    """Convert deposit/withdrawal/transfer to a ledger format
+    
+    entry --- list of length 1
+    result --- string in ledger format
+    """
+    account_fee = "Expenses:Taxes:Kraken"
+    account = "Assets:Kraken"
+    account2 = account + ":" + entry[0]['type']
+
+    indent = '\n    '
+
+    # cost including fees
+    cost = "{:.9f}".format(float(entry[0]['amount']) - float(entry[0]['fee']))
+
+    # currency
+    curr = entry[0]['asset'][1:]
+
+    # date
+    date = time2date(entry[0]['time'])
+
+    # trade_id
+    id = entry[0]['refid']
+
+    res=date + "  " + id + indent
+
+    res=res + account_fee + "  " + entry[0]['fee'] + " " + curr + indent
+    
+    res=res + account + "  " + cost + " " + curr + indent
+    res=res + account2 + indent
+
+    return res
+    
 
 def convert2ledger(ids, ledger):
     """Converts ledger entries to a double entry in the format of ledger
@@ -180,10 +212,11 @@ def convert2ledger(ids, ledger):
             res.append(trade2ledger(entry))
 
         if len(entry) == 1:
-            print(entry[0]['type'])
             if (entry[0]['type'] == 'trade'):
                 print("lonely trade")
                 sys.exit()
+
+            res.append(deposit2ledger(entry))
 
         if len(entry) < 1 or len(entry) > 2:
             print(entry)
