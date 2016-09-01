@@ -9,6 +9,7 @@ import json
 # for time and sleep
 import time
 
+import sys
 
 def query_all_entries(kraken, query, keyname, start, end, timeout=5):
     """Query all entries present in kraken database
@@ -35,6 +36,9 @@ def query_all_entries(kraken, query, keyname, start, end, timeout=5):
     arg['end'] = end
 
     data = dict()
+
+
+    last_end = 0
     
     while (arg['start'] < arg['end']):
 
@@ -43,7 +47,7 @@ def query_all_entries(kraken, query, keyname, start, end, timeout=5):
         except:
             time.sleep(timeout)
             continue
-        
+
         # raise exception in case of some error
         if (len(t['error'])):
             print("error occured")
@@ -55,12 +59,18 @@ def query_all_entries(kraken, query, keyname, start, end, timeout=5):
         # left
         if (len(t['result'][keyname]) == 0):
             break
+
+        # in case no new data is fetched
+        if (arg['end'] == last_end):
+            break
+        else:
+            last_end = arg['end']
         
         # return vector of times
         time_vector = [t['result'][keyname][key]['time']
                        for key in t['result'][keyname].keys()]
         
-        arg['end'] = min(time_vector)-0.5
+        arg['end'] = min(time_vector)
 
         # some debug info
         print("start: ", arg['start'])
@@ -68,7 +78,7 @@ def query_all_entries(kraken, query, keyname, start, end, timeout=5):
         print("number of entries: ", len(t['result'][keyname]))        
         
         data.update(t['result'][keyname])
-
+        
         # timeout for kraken api
         time.sleep(timeout)
 
@@ -168,6 +178,18 @@ def convert2ledger(ids, ledger):
                 sys.exit()
             
             res.append(trade2ledger(entry))
+
+        if len(entry) == 1:
+            print(entry[0]['type'])
+            if (entry[0]['type'] == 'trade'):
+                print("lonely trade")
+                sys.exit()
+
+        if len(entry) < 1 or len(entry) > 2:
+            print(entry)
+            print("length = ",len(entry))
+            print("unknown transaction")
+            sys.exit()
             
 
     return res    
