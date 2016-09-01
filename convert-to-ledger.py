@@ -125,8 +125,6 @@ def trade2ledger(entry):
     account_fee = "Expenses:Taxes:Kraken"
     account = "Assets:Kraken"
     
-    indent = '\n    '
-    
     # cost including fees
     cost0 = "{:.9f}".format(float(entry[0]['amount']) - float(entry[0]['fee']))    
     cost1 = "{:.9f}".format(float(entry[1]['amount']) - float(entry[1]['fee']))
@@ -141,14 +139,15 @@ def trade2ledger(entry):
     # trade_id
     id = entry[0]['refid']
 
-
-    res=date + "  " + id + indent
-
-    res=res + account_fee + "  " + entry[0]['fee'] + " " + curr0 + indent
-    res=res + account_fee + "  " + entry[1]['fee'] + " " + curr1 + indent
+    indent=' '*4
+    fmt=indent+'{:<26}{:>30} {:3}\n'
     
-    res=res + account + "  " + cost0 + " " + curr0 + indent
-    res=res + account + "  " + cost1 + " " + curr1 + indent
+    res ='{} {}\n'.format(date,id)
+    res+=fmt.format(account_fee,entry[0]['fee'],curr0)
+    res+=fmt.format(account_fee,entry[1]['fee'],curr1)
+
+    res+=fmt.format(account,cost0,curr0)
+    res+=fmt.format(account,cost1,curr1)
 
     return res
 
