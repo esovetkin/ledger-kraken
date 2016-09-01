@@ -243,13 +243,13 @@ if __name__ == '__main__':
     #conn = kraken.Connection("api.kraken.com",timeout=5)
 
     # # get ledger history
-    # ledger = query_all_entries(kraken,'Ledgers','ledger',1451602800,time.time(),5)
+    # ledger = query_all_entries(kraken,'Ledgers','ledger',1,time.time(),5)
     # # save in json data
     # with open('data/ledger.json','w') as fp:
     #    json.dump(ledger, fp, indent = 2)
 
     # # get trades history
-    # trades = query_all_entries(kraken,'TradesHistory','trades',1451602800,time.time(),5)
+    # trades = query_all_entries(kraken,'TradesHistory','trades',1,time.time(),5)
     # # save in json data
     # with open('data/trades.json','w') as fp:
     #     json.dump(trades, fp, indent = 2)
