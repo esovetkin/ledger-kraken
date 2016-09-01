@@ -94,7 +94,7 @@ def reformat(trades):
 
     trades --- dict with trades/ledger data
 
-    return --- list with trades/ledger
+    return --- list with trades/ledger entries
     """
 
     res=list()
@@ -104,10 +104,20 @@ def reformat(trades):
 
     return res
 
-## the point of this function is to return dict in ledger format. We
-## can introduce flag for a change inside this ledger format. User
-## should print ledger himself, or append to a file. This script
-## should not touch any other files outside this repository.
+def splitpair(pair):
+    """
+    Splits pair of currencies
+
+    pair --- pair of currencies, e.g. XXRPXXBT
+
+    return list of length 2
+    """
+    res = list()
+
+    res.append(pair[1:4])
+    res.append(pair[5:])
+    return res
+
 def print_trade(entry):
     """Print entries in ledger format
 
@@ -118,7 +128,29 @@ def print_trade(entry):
          trade_id - ledger string
 
     """
-    res=str()
+    pair = splitpair(entry['pair'])
+
+    indent='\n    '
+    account_fee = "Expenses:Taxes:Kraken"
+    account = "Assets:Kraken"
+    
+    res=time2date(entry['time']) + "  " +\
+        entry['type'] + " " + pair[0] + "; " +\
+        entry['id'] + indent
+
+    res=res + account_fee + "  " +\
+        entry["fee"] + " " + pair[1] + indent
+    
+    res=res + account  + "  " + \
+        ("-" if entry['type'] == 'buy' else "") + \
+        entry['cost'] + " " + pair[1] + indent
+
+    res=res + account + "  " +\
+        ("-" if entry['type'] == 'sell' else "") +\
+        entry['vol'] + " " + pair[0] + indent
+
+    return res
+    
     
 
 if __name__ == '__main__':
@@ -181,9 +213,9 @@ if __name__ == '__main__':
     with open('data/trades.json', 'r') as fp:
         trades = json.load(fp)
 
-    # reformat trades
-    tradesh = reformat(trades)
-
+    # reformat trades and sort
+    tradesh = sorted(reformat(trades), key=(lambda x: x['time']))
+    
     # write to file
     with open('data/trades_h.json','w') as fp:
         json.dump(tradesh, fp, indent = 2)
@@ -194,8 +226,8 @@ if __name__ == '__main__':
         ledger = json.load(fp)
 
     # reformat ledger
-    ledgerh = reformat(ledger)
-
+    ledgerh = sorted(reformat(ledger),key=(lambda x: x['time']))
+    
     with open('data/ledger_h.json', 'w') as fp:
         json.dump(ledgerh, fp, indent = 2)
 
