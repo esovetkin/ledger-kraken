@@ -1,2 +1,7 @@
-test
+ledger-kraken: kraken ledger to ledger
+======================================
 
+[Ledger](https://github.com/ledger/ledger) is a double entry system.
+
+ledger-kraken aims to convert ledger entries from Kraken API to ledger
+format.
