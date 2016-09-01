@@ -88,44 +88,39 @@ def time2date(t):
     """
     return time.strftime('%Y/%m/%d', time.localtime(t))
 
-# # get ledger history
-# ledger = query_all_entries(kraken,'Ledgers','ledger',1451602800,1472643007,5)
-# # save in json data
-# with open('data/ledger.json','w') as fp:
-#    json.dump(ledger, fp, indent = 2)
-
-# # get trades history
-# trades = query_all_entries(kraken,'TradesHistory','trades',1451602800,1472643007,5)
-# # save in json data
-# with open('data/trades.json','w') as fp:
-#     json.dump(trades, fp, indent = 2)
-
-
-# read json code    
-with open('data/ledger.json', 'r') as fp:
-    data = json.load(fp)
-
-
-
-def reformat_deposit_withdraw(ledger, kraken_account, ):
+def reformat_ledger(ledgers):
     """
     Reformat deposits and withdrawals to ledger format
+    
+    ledgers --- dict with ledger data
+
+    return --- dict:
     """
 
-def reformat_trades():
+    ledgerh=defaultdict((lambda :defaultdict(dict))) #dict with defautl dict of dict
+    for lid, ledger in ledgers.items():
+        tdate = time2date(ledger["time"])
+        ttype = ledger["type"]
+        tid = ledger["refid"]
+        tasset = ledger["asset"]
+        tfee = float(ledger["fee"])
+        tbalance = float(ledger["balance"])
+        tamount = float(ledger["amount"])
+        ledgerh[tdate][ttype]={"id":tid, "fee":tfee,\
+                               "amount":tamount,"balance":tbalance,\
+                               "asset":tasset}
+    return ledgerh
+        
+
+def reformat_trades(trades):
     """
     Reformat raw data from query to human readable format. 
 
-    Return dict:
+    trades --- dict with trades data
+
+    return --- dict:
         dict - date - buy/sell - {cost, fee, vol, price }
-
-    Output:
-        trades_h.json
     """
-
-    #load the raw data
-    with open('data/trades.json', 'r') as fp:
-        trades = json.load(fp)
 
     tradesh=defaultdict((lambda :defaultdict(dict))) #dict with default dict of dict
     for tid,trade in trades.items():
@@ -141,10 +136,8 @@ def reformat_trades():
         tradesh[tdate][ttype]={"id":tid,"fee":tfee,\
                                "cost":tcost,"vol":tvol,\
                                "pair":tpair, "price":tprice}
-    #write to file
-    with open('data/trades_h.json','w') as fp:
-        json.dump(tradesh, fp, indent = 2)
 
+    return tradesh
 
 
 if __name__ == '__main__':
@@ -166,8 +159,8 @@ if __name__ == '__main__':
 
 
     # init krakenex API
-#   kraken = krakenex.API()
-#   kraken.load_key("keys/albus-test.key")
+    # kraken = krakenex.API()
+    # kraken.load_key("keys/albus-test.key")
 
     # query orders
     #t = k.query_private("OpenOrders")
@@ -190,6 +183,39 @@ if __name__ == '__main__':
     # connection handler. \todo set timeout variable properly (depending on tier)
     #conn = kraken.Connection("api.kraken.com",timeout=5)
 
-    
-    reformat_trades()
+    # # get ledger history
+    # ledger = query_all_entries(kraken,'Ledgers','ledger',1451602800,1472643007,5)
+    # # save in json data
+    # with open('data/ledger.json','w') as fp:
+    #    json.dump(ledger, fp, indent = 2)
 
+    # # get trades history
+    # trades = query_all_entries(kraken,'TradesHistory','trades',1451602800,1472643007,5)
+    # # save in json data
+    # with open('data/trades.json','w') as fp:
+    #     json.dump(trades, fp, indent = 2)
+
+    
+    # load the raw data
+    with open('data/trades.json', 'r') as fp:
+        trades = json.load(fp)
+
+    # reformat trades
+    tradesh = reformat_trades(trades)
+
+    # write to file
+    with open('data/trades_h.json','w') as fp:
+        json.dump(tradesh, fp, indent = 2)
+
+
+    # read ledger data
+    with open('data/ledger.json', 'r') as fp:
+        ledger = json.load(fp)
+
+    # reformat ledger
+    ledgerh = reformat_ledger(ledger)
+
+    with open('data/ledger_h.json', 'w') as fp:
+        json.dump(ledgerh, fp, indent = 2)
+
+    
