@@ -22,6 +22,6 @@ depth = k.query_public('Depth',arg)
 
 
 try:
-    print(tabulate(depth['result']['XXRPXXBT'], tablefmt='orgtbl'))
+    print(tabulate(depth['result'][arg['pair']], tablefmt='orgtbl'))
 except:
     print(depth['error'])
