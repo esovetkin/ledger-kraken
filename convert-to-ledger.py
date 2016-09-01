@@ -139,6 +139,20 @@ def reformat_trades(trades):
 
     return tradesh
 
+## the point of this function is to return dict in ledger format. We
+## can introduce flag for a change inside this ledger format. User
+## should print ledger himself, or append to a file. This script
+## should not touch any other files outside this repository.
+def print_ledger_format(ledger, trades):
+    """
+    Print entries in ledger format
+
+    ledger --- reformated ledger
+    trades --- reformated trades
+
+    return --- dict:
+         trade_id - ledger string
+    """
 
 if __name__ == '__main__':
     """
