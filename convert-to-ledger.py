@@ -88,73 +88,38 @@ def time2date(t):
     """
     return time.strftime('%Y/%m/%d', time.localtime(t))
 
-def reformat_ledger(ledgers):
-    """
-    Reformat deposits and withdrawals to ledger format
-    
-    ledgers --- dict with ledger data
-
-    return --- dict:
-    """
-
-    ledgerh=list() #dict with defautl dict of dict
-    for lid, ledger in ledgers.items():
-        tdate = time2date(ledger["time"])
-        ttype = ledger["type"]
-        tid = ledger["refid"]
-        tasset = ledger["asset"]
-        tfee = float(ledger["fee"])
-        tbalance = float(ledger["balance"])
-        tamount = float(ledger["amount"])
-        ledgerh.append({"id":tid, "fee":tfee,\
-                        "amount":tamount,"balance":tbalance,\
-                        "asset":tasset, "date":tdate,\
-                        "type":ttype})
-    return ledgerh
-        
-
-def reformat_trades(trades):
+def reformat(trades):
     """
     Reformat raw data from query to human readable format. 
 
-    trades --- dict with trades data
+    trades --- dict with trades/ledger data
 
-    return --- dict:
-        dict - date - buy/sell - {cost, fee, vol, price }
+    return --- list with trades/ledger
     """
 
-    tradesh=list()
+    res=list()
     for tid,trade in trades.items():
-        #collect the information 
-        tdate = time2date(trade["time"])
-        ttype = trade["type"]
-        tfee  = float(trade["fee"])
-        tcost = float(trade["cost"])
-        tvol  = float(trade["vol"])
-        tpair = [trade["pair"][1:4],trade["pair"][5:]]
-        tprice = float(trade["price"])
-        #place to the new dict 
-        tradesh.append({"id":tid,"fee":tfee,\
-                        "cost":tcost,"vol":tvol,\
-                        "pair":tpair,"price":tprice,\
-                        "date":tdate,"type":ttype})
+        trade['id'] = tid
+        res.append(trade)
 
-    return tradesh
+    return res
 
 ## the point of this function is to return dict in ledger format. We
 ## can introduce flag for a change inside this ledger format. User
 ## should print ledger himself, or append to a file. This script
 ## should not touch any other files outside this repository.
-def print_ledger_format(ledger, trades):
-    """
-    Print entries in ledger format
+def print_trade(entry):
+    """Print entries in ledger format
 
     ledger --- reformated ledger
     trades --- reformated trades
 
     return --- dict:
          trade_id - ledger string
+
     """
+    res=str()
+    
 
 if __name__ == '__main__':
     """
@@ -217,7 +182,7 @@ if __name__ == '__main__':
         trades = json.load(fp)
 
     # reformat trades
-    tradesh = reformat_trades(trades)
+    tradesh = reformat(trades)
 
     # write to file
     with open('data/trades_h.json','w') as fp:
@@ -229,7 +194,7 @@ if __name__ == '__main__':
         ledger = json.load(fp)
 
     # reformat ledger
-    ledgerh = reformat_ledger(ledger)
+    ledgerh = reformat(ledger)
 
     with open('data/ledger_h.json', 'w') as fp:
         json.dump(ledgerh, fp, indent = 2)
