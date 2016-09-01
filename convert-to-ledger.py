@@ -132,21 +132,23 @@ def print_trade(entry):
     indent='\n    '
     account_fee = "Expenses:Taxes:Kraken"
     account = "Assets:Kraken"
+
+    cost = "{:.9f}".format(float(entry['cost']) + float(entry['fee']))
     
     res=time2date(entry['time']) + "  " +\
         entry['type'] + " " + pair[0] + "; " +\
         entry['id'] + indent
-
+    
+    res=res + account + "  " +\
+        ("-" if entry['type'] == 'sell' else "") +\
+        entry['vol'] + " " + pair[0] + indent
+    
     res=res + account_fee + "  " +\
         entry["fee"] + " " + pair[1] + indent
     
     res=res + account  + "  " + \
         ("-" if entry['type'] == 'buy' else "") + \
-        entry['cost'] + " " + pair[1] + indent
-
-    res=res + account + "  " +\
-        ("-" if entry['type'] == 'sell' else "") +\
-        entry['vol'] + " " + pair[0] + indent
+        cost + " " + pair[1] + indent
 
     return res
     
@@ -171,8 +173,8 @@ if __name__ == '__main__':
 
 
     # init krakenex API
-    # kraken = krakenex.API()
-    # kraken.load_key("keys/albus-test.key")
+    kraken = krakenex.API()
+    kraken.load_key("keys/albus-test.key")
 
     # query orders
     #t = k.query_private("OpenOrders")
@@ -196,13 +198,13 @@ if __name__ == '__main__':
     #conn = kraken.Connection("api.kraken.com",timeout=5)
 
     # # get ledger history
-    # ledger = query_all_entries(kraken,'Ledgers','ledger',1451602800,1472643007,5)
+    # ledger = query_all_entries(kraken,'Ledgers','ledger',1451602800,time.time(),5)
     # # save in json data
     # with open('data/ledger.json','w') as fp:
     #    json.dump(ledger, fp, indent = 2)
 
     # # get trades history
-    # trades = query_all_entries(kraken,'TradesHistory','trades',1451602800,1472643007,5)
+    # trades = query_all_entries(kraken,'TradesHistory','trades',1451602800,time.time(),5)
     # # save in json data
     # with open('data/trades.json','w') as fp:
     #     json.dump(trades, fp, indent = 2)
@@ -219,6 +221,10 @@ if __name__ == '__main__':
     with open('data/trades_h.json','w') as fp:
         json.dump(tradesh, fp, indent = 2)
 
+    # write ledger file
+    
+    with open('data/ledger_kraken.log','w') as fp:
+        fp.write("\n".join([print_trade(x) for x in tradesh]))
 
     # read ledger data
     with open('data/ledger.json', 'r') as fp:
@@ -230,4 +236,5 @@ if __name__ == '__main__':
     with open('data/ledger_h.json', 'w') as fp:
         json.dump(ledgerh, fp, indent = 2)
 
+    
     
