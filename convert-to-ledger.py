@@ -140,7 +140,7 @@ def trade2ledger(entry):
 
     #pretty printing
     indent=' '*4
-    fmt=indent+'{:<26}{:>30} {:3}\n'
+    fmt=indent+'{:<26}{:>22} {:3}\n'
     
     res ='{} {}\n'.format(date,id)
     res+=fmt.format(account_fee,entry[0]['fee'],curr0)
@@ -175,7 +175,7 @@ def deposit2ledger(entry):
 
     #pretty printing
     indent=' '*4
-    fmt=indent+'{:<26}{:>30} {:3}\n'
+    fmt=indent+'{:<26}{:>22} {:3}\n'
     
     res ='{} {}\n'.format(date,id)
     res+=fmt.format(account_fee,entry[0]['fee'],curr)
@@ -198,6 +198,8 @@ def convert2ledger(ids, ledger):
     ids = list(set(ids))
     
     res = list()
+
+    res.append("#! ledger-mode\n")
         
     for id in ids:
         # get list of trades corresponding to the id
