@@ -3,17 +3,12 @@
 # install: https://github.com/veox/python3-krakenex
 import krakenex
 
-# for reading arguments
-import sys
-
 # for storing downloaded data
 import json
 
 # for time and sleep
 import time
 
-# create default dict
-from collections import defaultdict 
 
 def query_all_entries(kraken, query, keyname, start, end, timeout=5):
     """Query all entries present in kraken database
@@ -79,6 +74,7 @@ def query_all_entries(kraken, query, keyname, start, end, timeout=5):
 
     return data
 
+
 def time2date(t):
     """
     Convert time to ledger date format
@@ -87,6 +83,7 @@ def time2date(t):
     return --- string of date in ledger format
     """
     return time.strftime('%Y/%m/%d', time.localtime(t))
+
 
 def reformat(trades):
     """
@@ -104,6 +101,7 @@ def reformat(trades):
 
     return res
 
+
 def splitpair(pair):
     """
     Splits pair of currencies
@@ -117,6 +115,7 @@ def splitpair(pair):
     res.append(pair[1:4])
     res.append(pair[5:])
     return res
+
 
 def print_trade(entry):
     """Print entries in ledger format
