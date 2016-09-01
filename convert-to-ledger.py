@@ -105,58 +105,72 @@ def reformat(trades, entry_type):
     return res
 
 
-def splitpair(pair):
-    """
-    Splits pair of currencies
+def trade2ledger(entry):
+    """Convert a list of entries to a ledger format
 
-    pair --- pair of currencies, e.g. XXRPXXBT
-
-    return list of length 2
+    entry --- list of length 2
+    result --- string in ledger format
     """
+    # account names
+    account_fee = "Expenses:Taxes:Kraken"
+    account = "Assets:Kraken"
+    
+    indent = '\n    '
+    
+    # cost including fees
+    cost0 = "{:.9f}".format(float(entry[0]['amount']) - float(entry[0]['fee']))    
+    cost1 = "{:.9f}".format(float(entry[1]['amount']) - float(entry[1]['fee']))
+
+    # currency
+    curr0 = entry[0]['asset'][1:]
+    curr1 = entry[1]['asset'][1:]
+    
+    # date
+    date = time2date(entry[0]['time'])
+
+    # trade_id
+    id = entry[0]['refid']
+
+
+    res=date + "  " + id + indent
+
+    res=res + account_fee + "  " + entry[0]['fee'] + " " + curr0 + indent
+    res=res + account_fee + "  " + entry[1]['fee'] + " " + curr1 + indent
+    
+    res=res + account + "  " + cost0 + " " + curr0 + indent
+    res=res + account + "  " + cost1 + " " + curr1 + indent
+
+    return res
+
+
+def convert2ledger(ids, ledger):
+    """Converts ledger entries to a double entry in the format of ledger
+
+    ids --- trade ids
+    ledger --- ledger list
+
+    return --- list of character in ledger format 
+    """
+    
+    # get unique ids
+    ids = list(set(ids))
+    
     res = list()
-
-    res.append(pair[1:4])
-    res.append(pair[5:])
-    return res
-
-
-def print_trade(entry):
-    """Print entries in ledger format
-
-    ledger --- reformated ledger
-    trades --- reformated trades
-
-    return --- dict:
-         trade_id - ledger string
-
-    """
-
-    if (entry['entry_type'] == 'trade'):
-        pair = splitpair(entry['pair'])
         
-        indent='\n    '
-        account_fee = "Expenses:Taxes:Kraken"
-        account = "Assets:Kraken"
-    
-        cost = "{:.9f}".format(float(entry['cost']) + float(entry['fee']))
-    
-        res=time2date(entry['time']) + "  " +\
-             entry['type'] + " " + pair[0] + "; " +\
-             entry['id'] + indent
-    
-        res=res + account + "  " +\
-             ("-" if entry['type'] == 'sell' else "") +\
-             entry['vol'] + " " + pair[0] + indent
-    
-        res=res + account_fee + "  " +\
-             entry["fee"] + " " + pair[1] + indent
-    
-        res=res + account  + "  " + \
-             ("-" if entry['type'] == 'buy' else "") + \
-             cost + " " + pair[1] + indent
+    for id in ids:
+        # get list of trades corresponding to the id
+        entry = [x for x in ledger if x['refid'] == id]
 
-    return res
-    
+        # case of trade
+        if len(entry) == 2:
+            if (entry[0]['type'] != 'trade') | (entry[1]['type'] != 'trade'):
+                print("ledger entries are not trade")
+                sys.exit()
+            
+            res.append(trade2ledger(entry))
+            
+
+    return res    
     
 
 if __name__ == '__main__':
@@ -215,21 +229,18 @@ if __name__ == '__main__':
     #     json.dump(trades, fp, indent = 2)
 
     
-    # load the raw data
-    with open('data/trades.json', 'r') as fp:
-        trades = json.load(fp)
-
     # read ledger data
     with open('data/ledger.json', 'r') as fp:
         ledger = json.load(fp)
-    
-    # reformat trades and sort
-    entries = sorted(reformat(trades, entry_type="trade"), key=(lambda x: x['time'])) +\
-              sorted(reformat(ledger, entry_type="ledger"),key=(lambda x: x['time']))
 
-    # # write ledger file    
-    # with open('data/ledger_kraken.log','w') as fp:
-    #     fp.write("\n".join([print_trade(x) for x in entries]))
+    entries = reformat(ledger, entry_type="ledger")
+        
+    entries = convert2ledger([x['refid'] for x in entries], entries)
+    
+    
+    # write ledger file    
+    with open('data/ledger_kraken.log','w') as fp:
+        fp.write("\n".join(sorted(entries)))
 
     
     
