@@ -80,12 +80,14 @@ def time2date(t):
     Convert time to ledger date format
     
     time   --- time in seconds since epoch
+    entry_type --- is it trade or ledger
+
     return --- string of date in ledger format
     """
     return time.strftime('%Y/%m/%d', time.localtime(t))
 
 
-def reformat(trades):
+def reformat(trades, entry_type):
     """
     Reformat raw data from query to human readable format. 
 
@@ -97,6 +99,7 @@ def reformat(trades):
     res=list()
     for tid,trade in trades.items():
         trade['id'] = tid
+        trade['entry_type'] = entry_type
         res.append(trade)
 
     return res
@@ -127,28 +130,30 @@ def print_trade(entry):
          trade_id - ledger string
 
     """
-    pair = splitpair(entry['pair'])
 
-    indent='\n    '
-    account_fee = "Expenses:Taxes:Kraken"
-    account = "Assets:Kraken"
-
-    cost = "{:.9f}".format(float(entry['cost']) + float(entry['fee']))
+    if (entry['entry_type'] == 'trade'):
+        pair = splitpair(entry['pair'])
+        
+        indent='\n    '
+        account_fee = "Expenses:Taxes:Kraken"
+        account = "Assets:Kraken"
     
-    res=time2date(entry['time']) + "  " +\
-        entry['type'] + " " + pair[0] + "; " +\
-        entry['id'] + indent
+        cost = "{:.9f}".format(float(entry['cost']) + float(entry['fee']))
     
-    res=res + account + "  " +\
-        ("-" if entry['type'] == 'sell' else "") +\
-        entry['vol'] + " " + pair[0] + indent
+        res=time2date(entry['time']) + "  " +\
+             entry['type'] + " " + pair[0] + "; " +\
+             entry['id'] + indent
     
-    res=res + account_fee + "  " +\
-        entry["fee"] + " " + pair[1] + indent
+        res=res + account + "  " +\
+             ("-" if entry['type'] == 'sell' else "") +\
+             entry['vol'] + " " + pair[0] + indent
     
-    res=res + account  + "  " + \
-        ("-" if entry['type'] == 'buy' else "") + \
-        cost + " " + pair[1] + indent
+        res=res + account_fee + "  " +\
+             entry["fee"] + " " + pair[1] + indent
+    
+        res=res + account  + "  " + \
+             ("-" if entry['type'] == 'buy' else "") + \
+             cost + " " + pair[1] + indent
 
     return res
     
@@ -214,27 +219,18 @@ if __name__ == '__main__':
     with open('data/trades.json', 'r') as fp:
         trades = json.load(fp)
 
-    # reformat trades and sort
-    tradesh = sorted(reformat(trades), key=(lambda x: x['time']))
-    
-    # write to file
-    with open('data/trades_h.json','w') as fp:
-        json.dump(tradesh, fp, indent = 2)
-
-    # write ledger file
-    
-    with open('data/ledger_kraken.log','w') as fp:
-        fp.write("\n".join([print_trade(x) for x in tradesh]))
-
     # read ledger data
     with open('data/ledger.json', 'r') as fp:
         ledger = json.load(fp)
-
-    # reformat ledger
-    ledgerh = sorted(reformat(ledger),key=(lambda x: x['time']))
     
-    with open('data/ledger_h.json', 'w') as fp:
-        json.dump(ledgerh, fp, indent = 2)
+    # reformat trades and sort
+    entries = sorted(reformat(trades, entry_type="trade"), key=(lambda x: x['time'])) +\
+              sorted(reformat(ledger, entry_type="ledger"),key=(lambda x: x['time']))
 
+    # # write ledger file    
+    # with open('data/ledger_kraken.log','w') as fp:
+    #     fp.write("\n".join([print_trade(x) for x in entries]))
+
+    
     
     
