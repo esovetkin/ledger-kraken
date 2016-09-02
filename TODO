@@ -6,3 +6,10 @@
 
   + nice output for the volume distribution, order book, etc
 
+* Placement of orders method
+
+  change order table in editor (where one can give either percentage
+  of assets (hmm) or volumes).
+
+  Run script to compare the current table with a table on kraken and
+  change the differences.
