@@ -1,7 +1,4 @@
 
-* timestamps and a function that download new data and appends it to
-  ledger
-
 * Public data functions:
 
   + nice output for the volume distribution, order book, etc
