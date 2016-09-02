@@ -11,6 +11,13 @@ import time
 
 import sys
 
+# defining some global varible (to replace with configuration)
+
+# account names
+account_fee = "Expenses:Taxes:Kraken"
+account = "Assets:Kraken"
+
+
 def query_all_entries(kraken, query, keyname, start, end, timeout=5):
     """Query all entries present in kraken database
 
@@ -119,11 +126,7 @@ def trade2ledger(entry):
 
     entry --- list of length 2
     result --- string in ledger format
-    """
-    # account names
-    account_fee = "Expenses:Taxes:Kraken"
-    account = "Assets:Kraken"
-    
+    """    
     # cost including fees
     cost0 = "{:.9f}".format(float(entry[0]['amount']) - float(entry[0]['fee']))    
     cost1 = "{:.9f}".format(float(entry[1]['amount']) - float(entry[1]['fee']))
@@ -157,8 +160,7 @@ def deposit2ledger(entry):
     entry --- list of length 1
     result --- string in ledger format
     """
-    account_fee = "Expenses:Taxes:Kraken"
-    account = "Assets:Kraken"
+    # sub-account for withdrawals/transfer/funding
     account2 = account + ":" + entry[0]['type']
 
     # cost including fees
@@ -199,6 +201,8 @@ def convert2ledger(ids, ledger):
     
     res = list()
 
+    # to enable emacs ldeger-mode (it doesn't make sence without a
+    # proper emacs config, remove?)
     res.append("#! ledger-mode\n")
         
     for id in ids:
