@@ -18,7 +18,16 @@ account_fee = "Expenses:Taxes:Kraken"
 account = "Assets:Kraken"
 
 # filename for the timestamp
-filename_timestamp="data/timestamp"
+filename_timestamp = "data/timestamp"
+
+# ledger filename
+filename_ledger = "data/ledger.log"
+
+# filename keys
+filename_keys = "keys/albus-test.key"
+
+# timeout
+timeout = 5
 
 def query_all_entries(kraken, query, keyname, start, end, timeout=5):
     """Query all entries present in kraken database
@@ -40,26 +49,27 @@ def query_all_entries(kraken, query, keyname, start, end, timeout=5):
     """
     
     # dictionary with extra parameters to the query
-    arg=dict()
-    arg['start'] = start
-    arg['end'] = end
+    arg={'start': start, 'end': end}
 
+    # result data
     data = dict()
 
-    last_end = 0
+    # in this variable is stored the time of the latest
+    latest_entry_time = 0
     
-    while (arg['start'] < arg['end']):
+    while (True):
 
         try:
+            # try to make query with kraken
             t = kraken.query_private(query,arg)
         except:
+            # sleep
             time.sleep(timeout)
             continue
 
         # raise exception in case of some error
         if (len(t['error'])):
-            print("error occured")
-            print(t['error'])
+            print("API error occured",t['error'])
             time.sleep(timeout)
             continue
     
@@ -67,25 +77,24 @@ def query_all_entries(kraken, query, keyname, start, end, timeout=5):
         # left
         if (len(t['result'][keyname]) == 0):
             break
-
-        # in case no new data is fetched
-        if (arg['end'] == last_end):
+        
+        # the condition will be satisfied if no new data is fetched
+        if (arg['end'] == latest_entry_time):
             break
         else:
-            last_end = arg['end']
+            latest_entry_time = arg['end']
         
-        # return vector of times
-        time_vector = [t['result'][keyname][key]['time']
-                       for key in t['result'][keyname].keys()]
-        
-        arg['end'] = min(time_vector)
+        # obtain the time of the latest oldest
+        arg['end'] = min([t['result'][keyname][key]['time']
+                          for key in t['result'][keyname].keys()])
+
+        # update dictionary
+        data.update(t['result'][keyname])
 
         # some debug info
         print("start: ", arg['start'])
         print("end: ", arg['end'])
         print("number of entries: ", len(t['result'][keyname]))        
-        
-        data.update(t['result'][keyname])
         
         # timeout for kraken api
         time.sleep(timeout)
@@ -189,7 +198,7 @@ def deposit2ledger(entry):
     return res
     
 
-def convert2ledger(ids, ledger):
+def convert2ledger(ledger):
     """Converts ledger entries to a double entry in the format of ledger
 
     ids --- trade ids
@@ -197,15 +206,11 @@ def convert2ledger(ids, ledger):
 
     return --- list of character in ledger format 
     """
-    
-    # get unique ids
-    ids = list(set(ids))
-    
-    res = list()
+    # get unique trade ids
+    ids = list(set([x['refid'] for x in ledger]))
 
-    # to enable emacs ldeger-mode (it doesn't make sence without a
-    # proper emacs config, remove?)
-    res.append("#! ledger-mode\n")
+    # resulting list of strings. each entry is one entry in ledger
+    res = list()
         
     for id in ids:
         # get list of trades corresponding to the id
@@ -219,19 +224,20 @@ def convert2ledger(ids, ledger):
             
             res.append(trade2ledger(entry))
 
+        # case of withdrawal/transfer/funding
         if len(entry) == 1:
             if (entry[0]['type'] == 'trade'):
                 print("lonely trade")
-                sys.exit()
-
+                continue
+                
             res.append(deposit2ledger(entry))
 
+        # in case some error in ledger
         if len(entry) < 1 or len(entry) > 2:
             print(entry)
             print("length = ",len(entry))
             print("unknown transaction")
             sys.exit()
-            
 
     return res    
 
@@ -259,41 +265,38 @@ def read_timestamp():
     except:
         return 1
 
+        
+def sync(kraken):
+    """Synchronise ledger data
+    """
+    # get the period of time
+    start = read_timestamp()
+    end = time.time()
 
+    # query new entries
+    data = query_all_entries(kraken,'Ledgers','ledger',start,end,timeout)
+    
+    # convert to ledger format
+    ledger = convert2ledger(reformat(data, entry_type="ledger"))
+
+    with open(filename_ledger, 'a+') as fp:
+        fp.write("\n".join(sorted(ledger)))
+
+    print("Wrote " + str(len(ledger)) + " entries.")
+
+    save_timestamp(data)
+    print("Saved timestamp")
+    
+    
 if __name__ == '__main__':
     """
     Describe what it does 
     """
-
     # init krakenex API
     kraken = krakenex.API()
-    kraken.load_key("keys/albus-test.key")
-
+    kraken.load_key(filename_keys)
+    
     # connection handler. \todo set timeout variable properly (depending on tier)
-    #conn = kraken.Connection("api.kraken.com",timeout=5)
+    #conn = kraken.Connection("api.kraken.com",timeout=timeout)
 
-    # # get ledger history
-    # ledger = query_all_entries(kraken,'Ledgers','ledger',1,time.time(),5)
-    # # save in json data
-    # with open('data/ledger.json','w') as fp:
-    #    json.dump(ledger, fp, indent = 2)
-
-    # # get trades history
-    # trades = query_all_entries(kraken,'TradesHistory','trades',1,time.time(),5)
-    # # save in json data
-    # with open('data/trades.json','w') as fp:
-    #     json.dump(trades, fp, indent = 2)
-
-    
-    # # read ledger data
-    # with open('data/ledger.json', 'r') as fp:
-    #     ledger = json.load(fp)
-
-    # ledger = reformat(ledger, entry_type="ledger")
-        
-    # entries = convert2ledger([x['refid'] for x in ledger], ledger)
-    
-    
-    # # write ledger file    
-    # with open('data/ledger_kraken.log','w') as fp:
-    #     fp.write("\n".join(sorted(entries)))
+    sync(kraken)
