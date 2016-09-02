@@ -17,6 +17,8 @@ import sys
 account_fee = "Expenses:Taxes:Kraken"
 account = "Assets:Kraken"
 
+# filename for the timestamp
+filename_timestamp="data/timestamp"
 
 def query_all_entries(kraken, query, keyname, start, end, timeout=5):
     """Query all entries present in kraken database
@@ -232,7 +234,31 @@ def convert2ledger(ids, ledger):
             
 
     return res    
+
+
+def save_timestamp(ledger):
+    """Save the time of the latest trade in file
     
+    ledger --- downloaded ledger data
+    return --- nothing
+    """
+    time = max([x['time'] for key,x in ledger.items()])
+
+    with open(filename_timestamp,'w') as fp:
+        fp.write(str(time))
+
+
+def read_timestamp():
+    """Read the time of the latest trade from file
+
+    return --- float, should be time in seconds from epoch
+    """
+    try:
+        with open(filename_timestamp,'r') as fp:
+            return float(fp.read())
+    except:
+        return 1
+
 
 if __name__ == '__main__':
     """
@@ -259,19 +285,15 @@ if __name__ == '__main__':
     #     json.dump(trades, fp, indent = 2)
 
     
-    # read ledger data
-    with open('data/ledger.json', 'r') as fp:
-        ledger = json.load(fp)
+    # # read ledger data
+    # with open('data/ledger.json', 'r') as fp:
+    #     ledger = json.load(fp)
 
-    ledger = reformat(ledger, entry_type="ledger")
+    # ledger = reformat(ledger, entry_type="ledger")
         
-    entries = convert2ledger([x['refid'] for x in ledger], ledger)
+    # entries = convert2ledger([x['refid'] for x in ledger], ledger)
     
     
-    # write ledger file    
-    with open('data/ledger_kraken.log','w') as fp:
-        fp.write("\n".join(sorted(entries)))
-
-    
-    
-    
+    # # write ledger file    
+    # with open('data/ledger_kraken.log','w') as fp:
+    #     fp.write("\n".join(sorted(entries)))
