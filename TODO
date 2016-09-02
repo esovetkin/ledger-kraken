@@ -13,3 +13,10 @@
 
   Run script to compare the current table with a table on kraken and
   change the differences.
+
+* Command-line tool configuration:
+
+  location of ledger-file
+  location of keys
+  directory for the data files
+
