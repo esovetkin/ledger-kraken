@@ -20,3 +20,6 @@
   location of keys
   directory for the data files
 
+  ? import configparser
+
+  make account names as configuration
