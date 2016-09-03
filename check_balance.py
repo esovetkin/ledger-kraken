@@ -19,7 +19,7 @@ while (True):
         new_bal = k.query_private('Balance')['result']
     except:
         print("Cannot get balance")
-        sys.exit()
+        time.sleep(30)
         
     try:
         with open('data/balance.json', 'r') as fp:
