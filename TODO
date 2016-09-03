@@ -20,3 +20,6 @@
   ? import configparser
 
   make account names as configuration
+
+* make entries in EUR with precision up to a second digit. It would be
+  good if can be done by means of ledger
