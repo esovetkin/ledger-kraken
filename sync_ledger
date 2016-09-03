@@ -21,7 +21,7 @@ account = "Assets:Kraken"
 filename_timestamp = "data/timestamp"
 
 # ledger filename
-filename_ledger = "data/ledger.log"
+filename_ledger = "data/ledger_kraken.log"
 
 # filename keys
 filename_keys = "keys/albus-test.key"
@@ -141,7 +141,14 @@ def trade2ledger(entry):
     # cost including fees
     cost0 = "{:.9f}".format(float(entry[0]['amount']) - float(entry[0]['fee']))    
     cost1 = "{:.9f}".format(float(entry[1]['amount']) - float(entry[1]['fee']))
-
+    
+    price0 = "{:<7} {:.9f} {}".format(("BUY AT" if float(entry[0]['amount']) > 0 else "SELL AT" ),
+                                      abs(float(entry[0]['amount'])/float(entry[1]['amount'])),
+                                      entry[0]['asset'] + entry[1]['asset']) 
+    price1 = "{:<7} {:.9f} {}".format(("BUY AT" if float(entry[1]['amount']) > 0 else "SELL AT" ),
+                                      abs(float(entry[1]['amount'])/float(entry[0]['amount'])),
+                                      entry[1]['asset'] + entry[0]['asset']) 
+    
     # currency
     curr0 = entry[0]['asset'][1:]
     curr1 = entry[1]['asset'][1:]
@@ -154,14 +161,15 @@ def trade2ledger(entry):
 
     #pretty printing
     indent=' '*4
-    fmt=indent+'{:<26}{:>22} {:3}\n'
+    fmt_fee = indent+'{:<26}{:>22} {:3}\n'
+    fmt=indent+'{:<26}{:>22} {:3} ; {}\n'
     
-    res ='{} {}\n'.format(date,id)
-    res+=fmt.format(account_fee,entry[0]['fee'],curr0)
-    res+=fmt.format(account_fee,entry[1]['fee'],curr1)
+    res ='{} Trade id: {}\n'.format(date,id)
+    res+=fmt_fee.format(account_fee,entry[0]['fee'],curr0)
+    res+=fmt_fee.format(account_fee,entry[1]['fee'],curr1)
 
-    res+=fmt.format(account,cost0,curr0)
-    res+=fmt.format(account,cost1,curr1)
+    res+=fmt.format(account,cost0,curr0, price0)
+    res+=fmt.format(account,cost1,curr1, price1)
 
     return res
 
@@ -298,5 +306,5 @@ if __name__ == '__main__':
     
     # connection handler. \todo set timeout variable properly (depending on tier)
     #conn = kraken.Connection("api.kraken.com",timeout=timeout)
-
+    
     sync(kraken)
