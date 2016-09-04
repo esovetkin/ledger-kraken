@@ -218,7 +218,7 @@ def convert2ledger(ledger):
     ids = list(set([x['refid'] for x in ledger]))
 
     # resulting list of strings. each entry is one entry in ledger
-    res = list()
+    res = list('\n')
         
     for id in ids:
         # get list of trades corresponding to the id
