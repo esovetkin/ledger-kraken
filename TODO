@@ -23,3 +23,9 @@
 
 * make entries in EUR with precision up to a second digit. It would be
   good if can be done by means of ledger
+
+* A simple idea of trading with a spread being large enough to trade.
+
+  Put orders with the same distribution as the current orders.
+
+  One has to introduce the stoppers, in case price drops/rises.
