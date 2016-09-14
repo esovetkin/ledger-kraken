@@ -20,7 +20,8 @@ orders = orders['result']['open']
 t = [{'pair':orders[key]['descr']['pair'],\
       'type':orders[key]['descr']['type'],\
       'price':orders[key]['descr']['price'],\
-      'vol':orders[key]['vol']} for key in orders.keys()]
+      'vol':orders[key]['vol'],\
+      'status':orders[key]['status']} for key in orders.keys()]
 
 
-print(tabulate(t))
+print(tabulate(t, floatfmt="7.9f"))
