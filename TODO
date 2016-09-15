@@ -1,8 +1,4 @@
 
-* Public data functions:
-
-  + nice output for the volume distribution, order book, etc
-
 * Placement of orders method
 
   change order table in editor (where one can give either percentage
@@ -35,3 +31,13 @@
 
   All these data should be stored in a nice database in order to store
   it efficiently.
+
+* a better unifying way to output order book (depth), orders, balance
+
+* an interface similar to ledger. so that one can call
+
+  ledger
+
+  and then specify commands in an appeared command line
+
+  or ledger <command> to get output directly
