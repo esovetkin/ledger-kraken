@@ -29,3 +29,9 @@
   Put orders with the same distribution as the current orders.
 
   One has to introduce the stoppers, in case price drops/rises.
+
+* Collection or historical data: order book with some high values of
+  volume inside, trades history
+
+  All these data should be stored in a nice database in order to store
+  it efficiently.
