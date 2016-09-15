@@ -306,10 +306,10 @@ def str2krakenOrder(string):
     res['type'] = string[0]
 
     # set volume
-    res['volume'] = float(string[1])
+    res['volume'] = string[1]
 
     # set price
-    res['price'] = float(string[4])
+    res['price'] = string[4]
     
     # deal with currency pairs
     first = string[2]

@@ -2,7 +2,7 @@
 
 
 # filename keys
-filename_keys = "keys/albus-test.key"
+filename_keys = "keys/albus.key"
 
 import krakenex
 
