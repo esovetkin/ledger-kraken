@@ -285,3 +285,80 @@ def sync(kraken, ftimestamp, fledger, timeout):
     save_timestamp(data, ftimestamp)
     print("Saved timestamp")
 
+
+def str2krakenOrder(string):
+    """Converts string with order to dictionary
+    
+    In case it fails to convert an exception is called
+
+    """
+    string = string.split()
+    
+    res = {'ordertype': 'limit'}
+
+    if (len(string) != 6):
+        raise Exception("String contains incorrect number of words!")
+
+    # check the first word
+    if (string[0] != 'buy' and string[0] != 'sell'):
+        raise Exception("Wrong order string!")
+    
+    res['type'] = string[0]
+
+    # set volume
+    res['volume'] = float(string[1])
+
+    # set price
+    res['price'] = float(string[4])
+    
+    # deal with currency pairs
+    first = string[2]
+    second = string[5]
+
+    # TODO should be a parameter
+    valid_currencies = ['EUR','USD','ETH','ETC','XBT','DAO','LTC','XDG','XLM','XRP']
+    
+    # check if this are good names
+    if (first not in valid_currencies) or (second not in valid_currencies):
+        raise Exception("Invalid currencies")
+
+    res['pair'] = first + second
+    
+    return res
+    
+    
+def order_str(kraken, string):
+    """Put a limit order to buy/sell
+
+    Convert a given string into kraken API language and tries to set
+    the order. Print given from kraken feedback.
+
+    string --- string like 'buy 0.5 BTC @ 534 EUR'
+
+    """
+
+    arg = {}
+    
+    try:
+        arg = str2krakenOrder(string)
+    except Exception as exc:
+        print(exc)
+        raise
+        
+
+    try:
+        # make a query to kraken
+        t = kraken.query_private('AddOrder',arg)
+        print(t)
+    except Exception as exc:
+        print(exc)
+        raise
+    except:
+        print("No connection")
+        raise
+
+    if (len(t['error'])):
+        print("API error occured",t['error'])
+        raise Exception("API error")
+
+
