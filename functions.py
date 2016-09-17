@@ -365,13 +365,14 @@ def order_str(kraken, string):
         print("API error occured",t['error'])
         raise Exception("API error")
 
-def readSQL(cursor, filename):
+def readSQL(conn, filename):
     """Read SQL-script from file
     
-    cursor --- sqlite3.cursor object
+    conn --- sqlite3 connection
     filename --- filename of the sql script to run
     """
-
+    c = conn.cursor()
+    
     # read sql script to variable, and split them by ';'. TODO: what
     # if ; is used in characters somewhere?
     with open(filename, 'r') as fp:
@@ -379,9 +380,11 @@ def readSQL(cursor, filename):
 
     for command in sqlFile:
         try:
-            cursor.execute(command)
+            c.execute(command)
         except sqlite3.OperationalError as msg:
             print("Command skipped: ", msg)
+
+    conn.commit()
 
             
 def init_db(db_path, sql_path):
@@ -393,14 +396,12 @@ def init_db(db_path, sql_path):
 
     # open db file
     conn = sqlite3.connect(db_path)
-    c = conn.cursor()
 
     # run script
-    readSQL(c, sql_path)
+    readSQL(conn, sql_path)
 
-    # commit and close
-    conn.commit()
-    c.close()
+    # close
+    conn.close()
 
 def insert_OrderBook(conn, orderbook, time):
     """Inserts to a database a given orderbook
@@ -425,7 +426,7 @@ def insert_OrderBook(conn, orderbook, time):
                 orderbook_list2.append((time, price, time2, askbid, volume, pair))
                 
     # add orders
-    cursor.executemany\
+    c.executemany\
         ("INSERT OR IGNORE INTO orderBook " + \
          "(price, time, type, volume, pair_id) VALUES" + \
          "(?,?,?,?," + \
@@ -433,7 +434,7 @@ def insert_OrderBook(conn, orderbook, time):
          orderbook_list)
         
     # add time of fetch 
-    cursor.executemany\
+    c.executemany\
         ("INSERT INTO orderBookLog " +\
          "(time, orderBook_id) VALUES" +\
          "(?," + \
