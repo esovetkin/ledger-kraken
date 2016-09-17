@@ -11,6 +11,7 @@ import time
 
 import sys
 
+import sqlite3
 
 def query_all_entries(kraken, query, keyname, start, end, timeout=5):
     """Query all entries present in kraken database
@@ -296,6 +297,9 @@ def str2krakenOrder(string):
     
     res = {'ordertype': 'limit'}
 
+    # debug
+    res['validate'] = 1
+    
     if (len(string) != 6):
         raise Exception("String contains incorrect number of words!")
 
@@ -361,4 +365,39 @@ def order_str(kraken, string):
         print("API error occured",t['error'])
         raise Exception("API error")
 
+def readSQL(cursor, filename):
+    """Read SQL-script from file
+    
+    cursor --- sqlite3.cursor object
+    filename --- filename of the sql script to run
+    """
 
+    # read sql script to variable, and split them by ';'. TODO: what
+    # if ; is used in characters somewhere?
+    with open(filename, 'r') as fp:
+        sqlFile = (fp.read()).split(';')
+
+    for command in sqlFile:
+        try:
+            cursor.execute(command)
+        except sqlite3.OperationalError as msg:
+            print("Command skipped: ", msg)
+
+            
+def init_db(db_path, sql_path):
+    """Initialising db at a given path by running a sql-script
+
+    db_path --- path to database
+    sql_path --- path to sql script
+    """
+
+    # open db file
+    conn = sqlite3.connect(db_path)
+    c = conn.cursor()
+
+    # run script
+    readSQL(c, sql_path)
+
+    # commit and close
+    conn.commit()
+    c.close()
