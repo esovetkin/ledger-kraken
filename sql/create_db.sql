@@ -28,11 +28,15 @@ CREATE TABLE orderBook
        price REAL, -- price of the pair
        time INTEGER, -- time the order was created, get from kraken
        volume REAL, -- volume
+       type varchar(4), -- type: bids/asks
        pair_id INTEGER, -- pair name
        FOREIGN KEY(pair_id) REFERENCES pairs(id),
-       CONSTRAIN uc_orderID UNIQUE (price, time, volume, pair_id)
+       CONSTRAINT uc_orderID UNIQUE (price, time, volume, type, pair_id)
        );
 
+-- index is needed to put orderBookLog
+CREATE INDEX order_Index
+ON orderBook (price, time, volume, type, pair_id)
 
 -- creates a table with logs of 
 CREATE TABLE orderBookLog
