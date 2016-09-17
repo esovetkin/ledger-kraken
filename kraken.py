@@ -11,7 +11,7 @@ class Kraken(krakenex.API):
     
     def __init__(self, key = '', secret = '', conn = None, tier = 3):
         # call constructor of the parent
-        krakenex.API.__init__(key = key, secret = secret, conn = conn)
+        krakenex.API.__init__(self, key = key, secret = secret, conn = conn)
 
         # set counter and timestamp
         self._counter = 0
@@ -70,7 +70,7 @@ class Kraken(krakenex.API):
         
         # determine cost of the query and add up to the counter
         self._counter += self._query_cost(urlpath)
-
+        
         while (self._if_blocked()):
             time.sleep(1)
             
