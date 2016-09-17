@@ -401,3 +401,46 @@ def init_db(db_path, sql_path):
     # commit and close
     conn.commit()
     c.close()
+
+def insert_OrderBook(conn, orderbook, time):
+    """Inserts to a database a given orderbook
+    
+    conn --- connection to sqlite db
+    orderbook --- a new entries orderbook 
+    time --- timestamp of the orderbook download time
+    """
+    c = conn.cursor()
+    
+    # convert data to list
+    orderbook_list = []
+    orderbook_list2 = [] # second list is redundant
+    for pair, pairValue in orderbook.items():
+        for askbid, askbidValue in pairValue.items():
+            for item in askbidValue:
+                price = item[0]
+                volume = item[1]
+                time2 = item[2]
+
+                orderbook_list.append((price, time2, askbid, volume, pair))
+                orderbook_list2.append((time, price, time2, askbid, volume, pair))
+                
+    # add orders
+    cursor.executemany\
+        ("INSERT OR IGNORE INTO orderBook " + \
+         "(price, time, type, volume, pair_id) VALUES" + \
+         "(?,?,?,?," + \
+         "(SELECT id from pairs WHERE name = ?))",
+         orderbook_list)
+        
+    # add time of fetch 
+    cursor.executemany\
+        ("INSERT INTO orderBookLog " +\
+         "(time, orderBook_id) VALUES" +\
+         "(?," + \
+         "(SELECT id from orderBook WHERE price = ? AND time = ? AND " +\
+         "type = ? AND volume = ? AND " +\
+         "pair_id = (SELECT id from pairs WHERE name = ?) ))",
+         orderbook_list2)
+
+    # commit changes in database
+    conn.commit()

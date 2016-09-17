@@ -21,6 +21,8 @@ INSERT INTO pairs(name) VALUES ('XXDGXXBT');
 INSERT INTO pairs(name) VALUES ('XXBTZEUR');
 INSERT INTO pairs(name) VALUES ('XXBTZUSD');
 
+CREATE INDEX pairs_Index ON pairs (name);
+
 -- creates a table with orders
 CREATE TABLE orderBook
        (
@@ -31,18 +33,19 @@ CREATE TABLE orderBook
        type varchar(4), -- type: bids/asks
        pair_id INTEGER, -- pair name
        FOREIGN KEY(pair_id) REFERENCES pairs(id),
-       CONSTRAINT uc_orderID UNIQUE (price, time, volume, type, pair_id)
+       CONSTRAINT uc_orderID UNIQUE (price, time, type, volume, pair_id)
        );
 
 -- index is needed to put orderBookLog
 CREATE INDEX order_Index
-ON orderBook (price, time, volume, type, pair_id)
+ON orderBook (price, time, volume, type, pair_id);
 
--- creates a table with logs of 
+-- creates a table with logs of order Book orders
 CREATE TABLE orderBookLog
        (
        id INTEGER PRIMARY KEY AUTOINCREMENT,
        time INTEGER, -- time the info has been fetched
-       order_id INTEGER, -- id of the order
-       FOREIGN KEY(order_id) REFERENCES orders(id) 
+       orderBook_id INTEGER, -- id of the order book entry
+       FOREIGN KEY(orderBook_id) REFERENCES orderBook(id)
+       CONSTRAINT uc_logID UNIQUE (time, orderBook_id)
        );      
