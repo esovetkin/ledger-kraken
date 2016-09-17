@@ -1,8 +1,8 @@
 
 -- drop all tables
 DROP TABLE pairs;
-DROP TABLE orders;
-DROP TABLE orders_log;
+DROP TABLE orderBook;
+DROP TABLE orderBookLog;
 
 -- creates a table with tradable pairs
 CREATE TABLE pairs (
@@ -22,18 +22,20 @@ INSERT INTO pairs(name) VALUES ('XXBTZEUR');
 INSERT INTO pairs(name) VALUES ('XXBTZUSD');
 
 -- creates a table with orders
-CREATE TABLE orders
+CREATE TABLE orderBook
        (
        id INTEGER PRIMARY KEY AUTOINCREMENT,
        price REAL, -- price of the pair
        time INTEGER, -- time the order was created, get from kraken
        volume REAL, -- volume
        pair_id INTEGER, -- pair name
-       FOREIGN KEY(pair_id) REFERENCES pairs(id) 
+       FOREIGN KEY(pair_id) REFERENCES pairs(id),
+       CONSTRAIN uc_orderID UNIQUE (price, time, volume, pair_id)
        );
 
+
 -- creates a table with logs of 
-CREATE TABLE orders_log
+CREATE TABLE orderBookLog
        (
        id INTEGER PRIMARY KEY AUTOINCREMENT,
        time INTEGER, -- time the info has been fetched
