@@ -73,7 +73,7 @@ class KrakenData(object):
         -- creates a table with tradable pairs
         CREATE TABLE IF NOT EXISTS pairs (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name varchar(8) UNIQUE -- pair name, should be unique
+        name varchar(8) UNIQUE                -- pair name, should be unique
         );
 
         -- fill table with tradable pairs
@@ -99,11 +99,11 @@ class KrakenData(object):
         CREATE TABLE IF NOT EXISTS orderBook
         (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        price REAL, -- price of the pair
-        time INTEGER, -- time the order was created, get from kraken
-        volume REAL, -- volume
-        type varchar(4), -- type: bids/asks
-        pair_id INTEGER, -- pair name
+        price REAL,                               -- price of the pair
+        time INTEGER,                             -- time the order was created, get from kraken
+        volume REAL,                              -- volume
+        type varchar(4),                          -- type: bids/asks
+        pair_id INTEGER,                          -- pair name
         FOREIGN KEY(pair_id) REFERENCES pairs(id),
         CONSTRAINT uc_orderID UNIQUE (price, time, type, volume, pair_id)
         );
@@ -128,9 +128,9 @@ class KrakenData(object):
         CREATE TABLE IF NOT EXISTS orderBookLog
         (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        time_c INTEGER, -- first time the order was seen
-        time_l INTEGER, -- last time the order was seen
-        orderBook_id INTEGER, -- id of the order book entry
+        time_c INTEGER,                                   -- first time the order was seen
+        time_l INTEGER,                                   -- last time the order was seen
+        orderBook_id INTEGER,                             -- id of the order book entry
         FOREIGN KEY(orderBook_id) REFERENCES orderBook(id)
         CONSTRAINT uc_logID UNIQUE (orderBook_id)
         );      
