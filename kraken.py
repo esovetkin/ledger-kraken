@@ -72,8 +72,6 @@ class Kraken(krakenex.API):
         
         # determine cost of the query and add up to the counter
         self._counter += self._query_cost(urlpath)
-
-        print("counter = ",self._counter)
         
         while (self._if_blocked()):
             print("blocked, counter = ",self._counter)

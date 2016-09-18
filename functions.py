@@ -297,8 +297,8 @@ def str2krakenOrder(string):
     
     res = {'ordertype': 'limit'}
 
-    # debug
-    res['validate'] = 1
+    # # debug
+    # res['validate'] = 1
     
     if (len(string) != 6):
         raise Exception("String contains incorrect number of words!")
@@ -365,83 +365,4 @@ def order_str(kraken, string):
         print("API error occured",t['error'])
         raise Exception("API error")
 
-def readSQL(conn, filename):
-    """Read SQL-script from file
-    
-    conn --- sqlite3 connection
-    filename --- filename of the sql script to run
-    """
-    c = conn.cursor()
-    
-    # read sql script to variable, and split them by ';'. TODO: what
-    # if ; is used in characters somewhere?
-    with open(filename, 'r') as fp:
-        sqlFile = (fp.read()).split(';')
 
-    for command in sqlFile:
-        try:
-            c.execute(command)
-        except sqlite3.OperationalError as msg:
-            print("Command skipped: ", msg)
-
-    conn.commit()
-
-            
-def init_db(db_path, sql_path):
-    """Initialising db at a given path by running a sql-script
-
-    db_path --- path to database
-    sql_path --- path to sql script
-    """
-
-    # open db file
-    conn = sqlite3.connect(db_path)
-
-    # run script
-    readSQL(conn, sql_path)
-
-    # close
-    conn.close()
-
-def insert_OrderBook(conn, orderbook, time):
-    """Inserts to a database a given orderbook
-    
-    conn --- connection to sqlite db
-    orderbook --- a new entries orderbook 
-    time --- timestamp of the orderbook download time
-    """
-    c = conn.cursor()
-    
-    # convert data to list
-    orderbook_list = []
-    orderbook_list2 = [] # second list is redundant
-    for pair, pairValue in orderbook.items():
-        for askbid, askbidValue in pairValue.items():
-            for item in askbidValue:
-                price = item[0]
-                volume = item[1]
-                time2 = item[2]
-
-                orderbook_list.append((price, time2, askbid, volume, pair))
-                orderbook_list2.append((time, price, time2, askbid, volume, pair))
-                
-    # add orders
-    c.executemany\
-        ("INSERT OR IGNORE INTO orderBook " + \
-         "(price, time, type, volume, pair_id) VALUES" + \
-         "(?,?,?,?," + \
-         "(SELECT id from pairs WHERE name = ?))",
-         orderbook_list)
-        
-    # add time of fetch 
-    c.executemany\
-        ("INSERT INTO orderBookLog " +\
-         "(time, orderBook_id) VALUES" +\
-         "(?," + \
-         "(SELECT id from orderBook WHERE price = ? AND time = ? AND " +\
-         "type = ? AND volume = ? AND " +\
-         "pair_id = (SELECT id from pairs WHERE name = ?) ))",
-         orderbook_list2)
-
-    # commit changes in database
-    conn.commit()
