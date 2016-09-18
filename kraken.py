@@ -4,6 +4,8 @@ import krakenex
 
 import time
 
+from math import ceil
+
 class Kraken(krakenex.API):
     """A wrap for the krakekex with API call rate control
 
@@ -49,7 +51,7 @@ class Kraken(krakenex.API):
         # determine new counter: tier 2 users reduce count every 3
         # seconds, tier 3 users reduce count every 2 seconds, tier 4
         # users reduce count every 1 second.
-        self._counter -= int((time.time() - self._counter_time)/(4-(self._tier-1)))
+        self._counter -= (time.time() - self._counter_time)/(4-(self._tier-1))
 
         # check if the counter is negative
         if (self._counter < 0):
@@ -59,9 +61,9 @@ class Kraken(krakenex.API):
 
         # determine if blocked
         if 2 == self._tier:
-            return self._counter >= 15
+            return ceil(self._counter) >= 15
         elif 3 == self._tier or 4 == self._tier:
-            return self._counter >= 20
+            return ceil(self._counter) >= 20
         
     def _query(self, urlpath, req = {}, conn = None, headers = {}):
         """Redefinition of low-level query handling
@@ -70,9 +72,13 @@ class Kraken(krakenex.API):
         
         # determine cost of the query and add up to the counter
         self._counter += self._query_cost(urlpath)
+
+        print("counter = ",self._counter)
         
         while (self._if_blocked()):
+            print("blocked, counter = ",self._counter)
             time.sleep(1)
+            
             
         # call the parent function
         return super(Kraken, self)._query(urlpath = urlpath, req = req, \

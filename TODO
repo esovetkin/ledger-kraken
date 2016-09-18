@@ -41,3 +41,6 @@
   and then specify commands in an appeared command line
 
   or ledger <command> to get output directly
+
+* Kraken class: read coutner values from a file. Share the counter
+  values between different processes?

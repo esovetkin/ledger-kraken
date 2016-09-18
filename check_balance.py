@@ -1,15 +1,15 @@
 #!/bin/env python3
 
-import krakenex
-
 import sys
 
 import json
 
 import time
 
+from kraken import Kraken
+
 # init krakenex API
-k = krakenex.API()
+k = Kraken(tier = 3)
 
 # load keys
 k.load_key('keys/albus-test.key')
