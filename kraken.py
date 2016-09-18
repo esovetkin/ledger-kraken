@@ -137,75 +137,12 @@ class KrakenData(object):
         """
         c = self._dbconn.cursor()
 
-        script = '''        
-        -- creates a table with tradable pairs
-        CREATE TABLE IF NOT EXISTS pairs (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name varchar(8) UNIQUE                -- pair name, should be unique
-        );
-
-        -- fill table with tradable pairs
-        INSERT OR IGNORE INTO pairs(name) VALUES ('XXLMXXBT');
-        INSERT OR IGNORE INTO pairs(name) VALUES ('XXRPXXBT');
-        INSERT OR IGNORE INTO pairs(name) VALUES ('XLTCXXBT');
-        INSERT OR IGNORE INTO pairs(name) VALUES ('XETHXXBT');
-        INSERT OR IGNORE INTO pairs(name) VALUES ('XETCXXBT');
-        INSERT OR IGNORE INTO pairs(name) VALUES ('XDAOXXBT');
-        INSERT OR IGNORE INTO pairs(name) VALUES ('XXDGXXBT');
-        INSERT OR IGNORE INTO pairs(name) VALUES ('XDAOXETH');
-        INSERT OR IGNORE INTO pairs(name) VALUES ('XDAOZEUR');
-        INSERT OR IGNORE INTO pairs(name) VALUES ('XETCXETH');
-        INSERT OR IGNORE INTO pairs(name) VALUES ('XETCZEUR');
-        INSERT OR IGNORE INTO pairs(name) VALUES ('XETHZEUR');
-        INSERT OR IGNORE INTO pairs(name) VALUES ('XXBTZEUR');
-        INSERT OR IGNORE INTO pairs(name) VALUES ('XXBTZUSD');
-
-
-        CREATE INDEX IF NOT EXISTS pairs_Index ON pairs (name);
-
-        -- creates a table with orders
-        CREATE TABLE IF NOT EXISTS orderBook
-        (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        price REAL,                               -- price of the pair
-        time INTEGER,                             -- time the order was created, get from kraken
-        volume REAL,                              -- volume
-        type varchar(4),                          -- type: bids/asks
-        pair_id INTEGER,                          -- pair name
-        FOREIGN KEY(pair_id) REFERENCES pairs(id),
-        CONSTRAINT uc_orderID UNIQUE (price, time, type, volume, pair_id)
-        );
-
-        -- index is needed to put orderBookLog
-        CREATE INDEX IF NOT EXISTS orders_Index
-        ON orderBook (price, time, volume, type, pair_id);
-
-        -- creates a table with logs of order Book orders
-        -- The data is stored in the following format:
-        --
-        -- Creation time | Last time seen | Order Id
-        --
-
-        -- This structure will allow to reduce the size of database,
-        -- since only the changes are stored. The only problem
-        -- appeares with the orders which are at the lower border of
-        -- the orderBook, since in case of increase of amount of
-        -- orders, the Last time seen will not be updated until the
-        -- amount of orders reduced to the previous amount (due to the
-        -- limitation of kraken, 500 orders).
-        CREATE TABLE IF NOT EXISTS orderBookLog
-        (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        time_c INTEGER,                                   -- first time the order was seen
-        time_l INTEGER,                                   -- last time the order was seen
-        orderBook_id INTEGER,                             -- id of the order book entry
-        FOREIGN KEY(orderBook_id) REFERENCES orderBook(id)
-        CONSTRAINT uc_logID UNIQUE (orderBook_id)
-        );      
-
-        CREATE INDEX IF NOT EXISTS orderid_Index
-        ON orderBookLog (orderBook_id);
-        '''
+        try:
+            with open("createdb.sql",'r') as f:
+                script = f.read()
+        except Exception as e:
+            print("cannot read createdb.sql to variable",e)
+            raise e
         
         try:
             c.executescript(script)
@@ -313,3 +250,5 @@ class KrakenData(object):
             new_data[pair] = t[pair]
 
         self._insert_to_OrderBook(new_data,time)
+
+    
