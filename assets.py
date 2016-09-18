@@ -11,16 +11,13 @@ import sqlite3
 
 #     def __init__(self, amount, pair, stategy)
 
-    
 # class Order(object):
 #     """Class where all the order information is stored
-    
 #     """
 
 #     def __init__(self, price, volume, ):
 #         self._orderid = orderid
 
-        
 class KrakenData(object):
     """Methods to access and store kraken data
 
@@ -54,26 +51,26 @@ class KrakenData(object):
 
         script = '''        
         -- creates a table with tradable pairs
-        CREATE TABLE pairs (
+        CREATE TABLE IF NOT EXISTS pairs (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name varchar(8) UNIQUE -- pair name, should be unique
         );
 
         -- fill table with tradable pairs
-        INSERT INTO pairs(name) VALUES ('XXLMXXBT');
-        INSERT INTO pairs(name) VALUES ('XXRPXXBT');
-        INSERT INTO pairs(name) VALUES ('XLTCXXBT');
-        INSERT INTO pairs(name) VALUES ('XETHXXBT');
-        INSERT INTO pairs(name) VALUES ('XETCXXBT');
-        INSERT INTO pairs(name) VALUES ('XDAOXXBT');
-        INSERT INTO pairs(name) VALUES ('XXDGXXBT');
-        INSERT INTO pairs(name) VALUES ('XXBTZEUR');
-        INSERT INTO pairs(name) VALUES ('XXBTZUSD');
+        INSERT OR IGNORE INTO pairs(name) VALUES ('XXLMXXBT');
+        INSERT OR IGNORE INTO pairs(name) VALUES ('XXRPXXBT');
+        INSERT OR IGNORE INTO pairs(name) VALUES ('XLTCXXBT');
+        INSERT OR IGNORE INTO pairs(name) VALUES ('XETHXXBT');
+        INSERT OR IGNORE INTO pairs(name) VALUES ('XETCXXBT');
+        INSERT OR IGNORE INTO pairs(name) VALUES ('XDAOXXBT');
+        INSERT OR IGNORE INTO pairs(name) VALUES ('XXDGXXBT');
+        INSERT OR IGNORE INTO pairs(name) VALUES ('XXBTZEUR');
+        INSERT OR IGNORE INTO pairs(name) VALUES ('XXBTZUSD');
 
-        CREATE INDEX pairs_Index ON pairs (name);
+        CREATE INDEX IF NOT EXISTS pairs_Index ON pairs (name);
 
         -- creates a table with orders
-        CREATE TABLE orderBook
+        CREATE TABLE IF NOT EXISTS orderBook
         (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         price REAL, -- price of the pair
@@ -86,7 +83,7 @@ class KrakenData(object):
         );
 
         -- index is needed to put orderBookLog
-        CREATE INDEX orders_Index
+        CREATE INDEX IF NOT EXISTS orders_Index
         ON orderBook (price, time, volume, type, pair_id);
 
         -- creates a table with logs of order Book orders
@@ -102,7 +99,7 @@ class KrakenData(object):
         -- orders, the Last time seen will not be updated until the
         -- amount of orders reduced to the previous amount (due to the
         -- limitation of kraken, 500 orders).
-        CREATE TABLE orderBookLog
+        CREATE TABLE IF NOT EXISTS orderBookLog
         (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         time_c INTEGER, -- first time the order was seen
@@ -112,13 +109,14 @@ class KrakenData(object):
         CONSTRAINT uc_logID UNIQUE (orderBook_id)
         );      
 
-        CREATE INDEX orderid_Index
+        CREATE INDEX IF NOT EXISTS orderid_Index
         ON orderBookLog (orderBook_id);
         '''
         
         try:
             c.executescript(script)
         except Exception as e:
+            print("Error creating database",e)
             self._dbconn.rollback()
             raise e        
 
@@ -166,6 +164,7 @@ class KrakenData(object):
                 ''',
                  orderbook_list2)
         except Exception as e:
+            print("Error with db insertion",e)
             self._dbconn.rollback()
             raise e
 
@@ -175,8 +174,7 @@ class KrakenData(object):
     def _get_ServerTime(self):
         """Get Kraken server time
         
-        return --- float
-
+        return --- float (actually, integer)
         """
 
         try:
@@ -221,3 +219,5 @@ class KrakenData(object):
             new_data[pair] = t[pair]
 
         self._insert_to_OrderBook(new_data,time)
+
+    
