@@ -35,14 +35,34 @@ class KrakenData(object):
         # init db connection
         self._dbconn = sqlite3.connect(self._db_path)
 
+        self._init_db()
+        
         # init kraken connection
         self._kraken = Kraken()
         self._kraken.load_key(self._key_path)
 
-        # tradable pairs
-        self._pairs = ["XXLMXXBT","XXRPXXBT","XLTCXXBT","XETHXXBT","XETCXXBT",
-                       "XDAOXXBT","XXDGXXBT","XXBTZEUR","XXBTZUSD"]
-        
+        # get tradable pairs
+        self._pairs = self._get_pairs()
+
+    def _get_pairs(self):
+        """Get tradable pairs
+
+        The query is made from a table pairs from database
+
+        return --- list of tradable pairs
+
+        """
+        c = self._dbconn.cursor()
+
+        res = []
+        try:
+            for name in c.execute("select name from pairs"):
+                res.append(name[0])
+        except Exception as e:
+            print("Error on getting pair names",e)
+            raise e
+
+        return res
 
     def _init_db(self):
         """Initialising db at a given path by running a sql-script        
@@ -64,8 +84,14 @@ class KrakenData(object):
         INSERT OR IGNORE INTO pairs(name) VALUES ('XETCXXBT');
         INSERT OR IGNORE INTO pairs(name) VALUES ('XDAOXXBT');
         INSERT OR IGNORE INTO pairs(name) VALUES ('XXDGXXBT');
+        INSERT OR IGNORE INTO pairs(name) VALUES ('XDAOXETH');
+        INSERT OR IGNORE INTO pairs(name) VALUES ('XDAOZEUR');
+        INSERT OR IGNORE INTO pairs(name) VALUES ('XETCXETH');
+        INSERT OR IGNORE INTO pairs(name) VALUES ('XETCZEUR');
+        INSERT OR IGNORE INTO pairs(name) VALUES ('XETHZEUR');
         INSERT OR IGNORE INTO pairs(name) VALUES ('XXBTZEUR');
         INSERT OR IGNORE INTO pairs(name) VALUES ('XXBTZUSD');
+
 
         CREATE INDEX IF NOT EXISTS pairs_Index ON pairs (name);
 
@@ -219,5 +245,3 @@ class KrakenData(object):
             new_data[pair] = t[pair]
 
         self._insert_to_OrderBook(new_data,time)
-
-    
