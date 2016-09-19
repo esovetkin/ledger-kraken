@@ -223,6 +223,7 @@ class KrakenData(object):
 
         return t['unixtime']
 
+    
     def _getTimeStamp(self, name):
         """Query timestamp name from the "timestamps" table
 
@@ -368,7 +369,88 @@ class KrakenData(object):
         
         # commit changes in database
         self._dbconn.commit()            
+
+
+    def _insert_to_TradesPrivate(self, new_data, time):
+        """Insert new private trades to the database
         
+        new_data --- new data with orders
+        time --- time the trades has been fetched (Kraken time)
+
+        NOT TESTED
+
+        """
+
+        c = self._dbconn.cursor()
+
+        # convert data to list
+        trade_list = []
+        for refid,v in new_data.items():
+            trade_list.append(refid, v['cost'],v['fee'],v['margin'],
+                              v['misc'],v['orderxid'],v['ordertype'],
+                              v['pair'],v['price'],v['time'],v['type'],
+                              v['vol'], v['posstatus'],v['cprice'],v['ccost'],
+                              v['cfee'],v['cvol'],v['cmargin'],v['net'],v['trades'])
+
+        try:
+            c.executemany
+            ('''
+            INSERT OR REPLACE INTO tradesPrivate
+            (refid, cost, fee, margin, misc, orderxid, ordertype, pair,
+            price, time, type, vol, possstatus, cprice, ccost, cfee, cvol,
+            cmargin, net, trades)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            ''',
+             trade_list)
+        except Exception as e:
+            print("Error with db insertion to tradesPrivate",e)
+            self._dbconn.rollback()
+            raise e
+
+        # update timestamp
+        self._setTimeStamp("tradesPrivate", time)
+
+        # commit changes in database
+        self._dbconn.commit()
+
+
+    def _insert_to_ledger(self, new_data, time):
+        """Insert new ledger entries to the database
+
+        new_data --- new data with ledger entries
+        time --- time the ledger has been fetched (Kraken time)
+
+        NOT TESTED
+
+        """
+
+        c = self._dbconn.cursor()
+
+        # convert data to list
+        ledger_list = []
+        for ledgerid, v in new_data.items():
+            ledger_list.append(ledgerid, v['aclass'], v['refid'],v['amount'],
+                               v['fee'],v['asset'],v['balance'],v['time'],v['type'])
+
+        try:
+            c.executemany
+            ('''
+            INSERT OR REPLACE INTO ledger
+            (ledgerid, aclass, refid, amount, fee, asset, balance, time, type)
+            VALUES (?,?,?,?,?,?,?,?,?)
+            ''',
+             ledger_list)
+        except Exception as e:
+            print("Error with db insertion to ledger",e)
+            self._dbconn.rollback()
+            raise e
+
+        # update timestamp
+        self._setTimeStamp("ledger", time)
+
+        # commit changes in database
+        self._dbconn.commit()
+
         
     def _sync_OrderBook(self, count = 500):
         """Download new order book for pairs given in self._pairs
