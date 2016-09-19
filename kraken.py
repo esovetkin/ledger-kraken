@@ -16,7 +16,7 @@ class Kraken(krakenex.API):
     
     def __init__(self, key = '', secret = '', conn = None, tier = 3):
         # call constructor of the parent
-        krakenex.API.__init__(self, key = key, secret = secret, conn = conn)
+        super(Kraken, self).__init__(self, key = key, secret = secret, conn = conn)
 
         # set counter and timestamp
         self._counter = 0
