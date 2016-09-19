@@ -29,8 +29,26 @@ CONSTRAINT uc_name UNIQUE (name)
 CREATE TABLE IF NOT EXISTS pairs
 (
 id INTEGER PRIMARY KEY AUTOINCREMENT,
-name varchar(8) NOT NULL,                 -- pair name, should be unique
-CONSTRAINT uc_name UNIQUE (name)
+name varchar(10) NOT NULL,                 -- pair name, should be unique
+altname varchar(10),                       -- alternate pair name
+aclass_base varchar(25),                   -- asset class of base component
+base varchar(10) NOT NULL,                 -- asset id of base component
+aclass_quote varchar(10),                  -- asset class of quote component
+quote varchar(10) NOT NULL,                -- asset id of quote component
+lot varchar(25),                           -- volume lot size
+pair_decimals INTEGER,                     -- scaling decimal places for pair
+lot_decimals INTEGER,                      -- scaling decimal places for volume
+lot_multiplier REAL,                       -- amount to multiply lot volume by to get currency volume
+-- leverage_buy ???                           -- array of leverage amounts available when buying
+-- leverage_buy ???                           -- array of leverage amounts available when selling
+-- fees ???                                   -- fee schedule array in [volume, percent fee] tuples
+-- fees_makes ???                             -- maker fee schedule array in [volume, percent fee] tuples (if on maker/taker)
+-- fee_volume_currency ???                    -- volume discount currency
+margin_call REAL,                          -- margin call level
+margin_stop REAL,                          -- stop-out/liquidation margin level
+CONSTRAINT uc_name UNIQUE (name),
+CONSTRAINT uc_base UNIQUE (base),
+CONSTRAINT uc_quote UNIQUE (quote)
 );
 
 -- creates a table with orders
