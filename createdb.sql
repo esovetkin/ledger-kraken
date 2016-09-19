@@ -1,7 +1,36 @@
--- creates a table with tradable pairs
-CREATE TABLE IF NOT EXISTS pairs (
+-- This is part of kraken-tools
+--
+-- This program is free software: you can redistribute it and/or modify
+-- it under the terms of the GNU General Public License as published by
+-- the Free Software Foundation, either version 3 of the License, or
+-- (at your option) any later version.
+--
+-- This program is distributed in the hope that it will be useful,
+-- but WITHOUT ANY WARRANTY; without even the implied warranty of
+-- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+-- GNU General Public License for more details.
+--
+-- You should have received a copy of the GNU General Public License
+-- along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+
+-- create table with timestamps of the syncronisation times (this
+-- table is unrelated with the kraken data). It is used for the
+-- internal purposes.
+CREATE TABLE IF NOT EXISTS timestamps
+(
 id INTEGER PRIMARY KEY AUTOINCREMENT,
-name varchar(8) UNIQUE                -- pair name, should be unique
+name varchar(25),                         -- name of the syncronisation procedure
+time REAL,
+CONSTRAINT uc_name UNIQUE (name)
+);
+
+-- creates a table with tradable pairs
+CREATE TABLE IF NOT EXISTS pairs
+(
+id INTEGER PRIMARY KEY AUTOINCREMENT,
+name varchar(8),                          -- pair name, should be unique
+CONSTRAINT uc_name UNIQUE (name)
 );
 
 -- creates a table with orders
@@ -33,9 +62,9 @@ CONSTRAINT uc_orderID UNIQUE (price, time, type, volume, pair_id)
 CREATE TABLE IF NOT EXISTS orderBookLog
 (
 id INTEGER PRIMARY KEY AUTOINCREMENT,
-time_c INTEGER,                                   -- first time the order was seen
-time_l INTEGER,                                   -- last time the order was seen
-orderBook_id INTEGER,                             -- id of the order book entry
+time_c INTEGER,                           -- first time the order was seen
+time_l INTEGER,                           -- last time the order was seen
+orderBook_id INTEGER,                     -- id of the order book entry
 FOREIGN KEY(orderBook_id) REFERENCES orderBook(id),
 CONSTRAINT uc_logID UNIQUE (orderBook_id)
 );      
