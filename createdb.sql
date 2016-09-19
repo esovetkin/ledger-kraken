@@ -69,19 +69,6 @@ FOREIGN KEY(orderBook_id) REFERENCES orderBook(id),
 CONSTRAINT uc_logID UNIQUE (orderBook_id)
 );      
 
--- table for storing description of orders
-CREATE TABLE IF NOT EXISTS descriptionOrders
-(
-id INTEGER PRIMARY KEY AUTOINCREMENT,
-pair varchar(6),                          -- asset pair
-leverage varchar(25),                     -- amount of leverage
-orderstr varchar(255),                    -- order description
-ordertype varchar(255),                   -- order type 
-price REAL,                               -- primary price
-price2 REAL,                              -- secondary price
-type varchar(25),                         -- type of order (buy/sell)
-close varchar(255)                        -- conditional close order description (if conditional close set)
-);
 
 -- table for stoting orders
 CREATE TABLE IF NOT EXISTS ordersPrivate
@@ -100,7 +87,14 @@ starttm REAL,                             -- unix timestamp of order start time 
 expiretm REAL,                            -- unix timestamp of order end time (or 0 if not set)
 closetm REAL,                             -- unix timestamp of when order was closed
 closereason varchar(255),                 -- amount of available order info matching criteria
-descr INTEGER,                            -- order description info
+descr_pair varchar(6),                    -- asset pair
+descr_leverage varchar(25),               -- amount of leverage
+descr_order varchar(255),                 -- order description
+descr_ordertype varchar(255),             -- order type 
+descr_price REAL,                         -- primary price
+descr_price2 REAL,                        -- secondary price
+descr_type varchar(25),                   -- type of order (buy/sell)
+descr_close varchar(255),                 -- conditional close order description (if conditional close set)
 vol REAL,                                 -- volume of order (base currency unless viqc set in oflags)
 vol_exec REAL,                            -- volume executed (base currency unless viqc set in oflags)
 cost REAL,                                -- total cost (quote currency unless unless viqc set in oflags)
@@ -119,7 +113,6 @@ oflags varchar(255),                      -- comma delimited list of order flags
                                           --   fciq = prefer fee in quote currency (default if buying)
                                           --   nompp = no market price protection
 trades varchar(255),                      -- array of trade ids related to order (if trades info requested and data available) TODO that is an array?
-FOREIGN KEY(descr) REFERENCES  descriptionOrders(id),
 CONSTRAINT uc_orderid UNIQUE (orderxid)
 );
 
@@ -133,7 +126,7 @@ fee REAL,                                 -- total fee (quote currency)
 margin REAL,                              -- initial margin (quote currency)
 misc varchar(255),                        -- comma delimited list of miscellaneous info
                                           --   closing = trade closes all or part of a position
-orderxid varchar(19),                    -- order responsible for execution of trade
+orderxid varchar(19),                     -- order responsible for execution of trade
 ordertype varchar(255),                   -- order type
 pair varchar(8),                          -- asset pair
 price REAL,                               -- average price order was executed at (quote currency)
