@@ -1,7 +1,20 @@
-ledger-kraken: kraken ledger to ledger
-======================================
+kraken-tools: tools for automatic trading
+=========================================
 
-[Ledger](https://github.com/ledger/ledger) is a double entry system.
+kraken-tools is a set of tools aiming to assist in automatic trading
+on the [kraken exchange](https://www.kraken.com/). It includes
+collecting and storing historical exchange data, environment to write
+and test trading strategies.
 
-ledger-kraken aims to convert ledger entries from Kraken API to ledger
-format.
+Tool for syncronising private trades with ledger
+[ledger](https://github.com/ledger/ledger).
+
+Dependencies
+------------
+
+kraken-tools requires a few dependencies.
+
+ + python3.3 or later
+ + [krakenex library](https://github.com/veox/python3-krakenex)
+ + sqlite, corresponding python library
+ 
