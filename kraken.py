@@ -326,14 +326,42 @@ class KrakenData(object):
         new_data --- new data with orders
         time --- time the orders has been fetched (Kraken time)
 
-        NOT FINISHED
+        NOT TESTED
         
         """
 
         c = self._dbconn.cursor()
 
+        # convert data to list
+        order_list = []
+        for orderid,v in new_data.items():
+            order_list.append(orderid, v['userref'], v['status'],
+                              v['opentm'],v['starttm'],v['expiretm'],
+                              v['closetm'],v['closereason'],
+                              v['descr']['pair'],v['descr']['leverage'],
+                              v['descr']['order'],v['descr']['ordertype'],
+                              v['descr']['price'],v['descr']['price2'],
+                              v['descr']['type'],v['descr']['close'],
+                              v['vol'],v['vol_exec'],v['cost'],
+                              v['fee'],v['price'],
+                              v['stopprice'],v['limitprice'],v['misc'],
+                              v['oflags'],v['trades'])
 
-        
+        try:
+            c.executemany
+            ('''
+            INSERT OR REPLACE INTO ordersPrivate
+            (orderxid, userref, status, opentm, starttm, expiretm, closetm,
+            closereason, descr_pair, descr_leverage, descr_order, descr_ordertype,
+            descr_price, descr_price2, descr_type, descr_close, vol, vol_exec,
+            cost, fee, price, stopprice, limitprice, misc, oflags, trades)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            ''',
+            order_list)
+        except Exception as e:
+            print("Error with db insertion to ordersPrivate",e)
+            self._dbconn.rollback()
+            raise e
         
         # update timestamp
         self._setTimeStamp("OrdersPrivate", time)
