@@ -37,3 +37,4 @@
   extra indices. Do I need to insert in a better way, in case I only
   what fields might change.
 
+* interface to write logs
