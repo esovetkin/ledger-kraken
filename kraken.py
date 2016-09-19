@@ -368,7 +368,7 @@ class KrakenData(object):
                 print("Error during API call: Depth for ", pair, e)
                 raise e
 
-           new_data[pair] = t[pair]
+            new_data[pair] = t[pair]
 
         self._insert_to_OrderBook(new_data,time)
 
