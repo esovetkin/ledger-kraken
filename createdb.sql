@@ -20,8 +20,8 @@
 CREATE TABLE IF NOT EXISTS timestamps
 (
 id INTEGER PRIMARY KEY AUTOINCREMENT,
-name varchar(25),                         -- name of the syncronisation procedure
-time REAL,
+name varchar(25) NOT NULL,                -- name of the synchronisation 
+time REAL NOT NULL,                       -- time of the last synchronisation
 CONSTRAINT uc_name UNIQUE (name)
 );
 
@@ -29,7 +29,7 @@ CONSTRAINT uc_name UNIQUE (name)
 CREATE TABLE IF NOT EXISTS pairs
 (
 id INTEGER PRIMARY KEY AUTOINCREMENT,
-name varchar(8),                          -- pair name, should be unique
+name varchar(8) NOT NULL,                 -- pair name, should be unique
 CONSTRAINT uc_name UNIQUE (name)
 );
 
@@ -37,11 +37,11 @@ CONSTRAINT uc_name UNIQUE (name)
 CREATE TABLE IF NOT EXISTS orderBook
 (
 id INTEGER PRIMARY KEY AUTOINCREMENT,
-price REAL,                               -- price of the pair
-time INTEGER,                             -- time the order was created, get from kraken
-volume REAL,                              -- volume
-type varchar(4),                          -- type: bids/asks
-pair_id INTEGER,                          -- pair name
+price REAL NOT NULL,                      -- price of the pair
+time INTEGER NOT NULL,                    -- krakentime the order was created
+volume REAL NOT NULL,                     -- volume
+type varchar(4) NOT NULL,                 -- type: bids/asks
+pair_id INTEGER NOT NULL,                 -- pair name
 FOREIGN KEY(pair_id) REFERENCES pairs(id),
 CONSTRAINT uc_orderID UNIQUE (price, time, type, volume, pair_id)
 );
@@ -62,9 +62,9 @@ CONSTRAINT uc_orderID UNIQUE (price, time, type, volume, pair_id)
 CREATE TABLE IF NOT EXISTS orderBookLog
 (
 id INTEGER PRIMARY KEY AUTOINCREMENT,
-time_c INTEGER,                           -- first time the order was seen
-time_l INTEGER,                           -- last time the order was seen
-orderBook_id INTEGER,                     -- id of the order book entry
+time_c INTEGER NOT NULL,                  -- first time the order was seen
+time_l INTEGER NOT NULL,                  -- last time the order was seen
+orderBook_id INTEGER NOT NULL,            -- id of the order book entry
 FOREIGN KEY(orderBook_id) REFERENCES orderBook(id),
 CONSTRAINT uc_logID UNIQUE (orderBook_id)
 );      
@@ -74,32 +74,32 @@ CONSTRAINT uc_logID UNIQUE (orderBook_id)
 CREATE TABLE IF NOT EXISTS ordersPrivate
 (
 id INTEGER PRIMARY KEY AUTOINCREMENT,
-orderxid varchar(19),                     -- Referral order transaction id that created this order
+orderxid varchar(19) NOT NULL,            -- Referral order transaction id that created this order
 userref varchar(255),                     -- user reference id
-status varchar(25),                       -- status of order:
+status varchar(25) NOT NULL,              -- status of order:
                                           --    pending = order pending book entry,
                                           --    open = open order
                                           --    closed = closed order
                                           --    canceled = order canceled
                                           --    expired = order expired
-opentm REAL,                              -- unix timestamp of when order was placed
+opentm REAL NOT NULL,                     -- unix timestamp of when order was placed
 starttm REAL,                             -- unix timestamp of order start time (or 0 if not set)
 expiretm REAL,                            -- unix timestamp of order end time (or 0 if not set)
 closetm REAL,                             -- unix timestamp of when order was closed
 closereason varchar(255),                 -- amount of available order info matching criteria
-descr_pair varchar(6),                    -- asset pair
+descr_pair varchar(6) NOT NULL,           -- asset pair
 descr_leverage varchar(25),               -- amount of leverage
-descr_order varchar(255),                 -- order description
-descr_ordertype varchar(255),             -- order type 
-descr_price REAL,                         -- primary price
+descr_order varchar(255) NOT NULL,        -- order description
+descr_ordertype varchar(255) NOT NULL,    -- order type 
+descr_price REAL,                         -- primary price (might be null in case of market type)
 descr_price2 REAL,                        -- secondary price
-descr_type varchar(25),                   -- type of order (buy/sell)
+descr_type varchar(25) NOT NULL,          -- type of order (buy/sell)
 descr_close varchar(255),                 -- conditional close order description (if conditional close set)
-vol REAL,                                 -- volume of order (base currency unless viqc set in oflags)
-vol_exec REAL,                            -- volume executed (base currency unless viqc set in oflags)
+vol REAL NOT NULL,                        -- volume of order (base currency unless viqc set in oflags)
+vol_exec REAL NOT NULL,                   -- volume executed (base currency unless viqc set in oflags)
 cost REAL,                                -- total cost (quote currency unless unless viqc set in oflags)
-fee REAL,                                 -- total fee (quote currency)
-price REAL,                               -- average price (quote currency unless viqc set in oflags)
+fee REAL NOT NULL,                        -- total fee (quote currency)
+price REAL NOT NULL,                      -- average price (quote currency unless viqc set in oflags)
 stopprice REAL,                           -- stop price (quote currency, for trailing stops)
 limitprice REAL,                          -- triggered limit price (quote currency, when limit based order type triggered)
 misc varchar(255),                        -- comma delimited list of miscellaneous info
