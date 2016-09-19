@@ -46,14 +46,14 @@ def query_all_entries(kraken, query, keyname, start, end, timeout=5):
         try:
             # try to make query with kraken
             t = kraken.query_private(query,arg)
-        except:
-            # sleep
-            time.sleep(timeout)
-            continue
 
-        # raise exception in case of some error
-        if (len(t['error'])):
-            print("API error occured",t['error'])
+            # raise exception in case of some error
+            if (len(t['error'])):
+                raise Exception("API error occured",t['error'])
+
+        except Exception as e:
+            print("Error while quering ",query,": ",e)
+            # sleep
             time.sleep(timeout)
             continue
     
