@@ -40,42 +40,13 @@ FOREIGN KEY(orderBook_id) REFERENCES orderBook(id),
 CONSTRAINT uc_logID UNIQUE (orderBook_id)
 );      
 
--- table for storing private trades entries
-CREATE TABLE IF NOT EXISTS tradesPrivate
-(
-id INTEGER PRIMARY KEY AUTOINCREMENT,
-refid varchar(19),                        -- trade id string
-cost REAL,                                -- total cost of order (quote currency)
-fee REAL,                                 -- total fee (quote currency)
-margin REAL,                              -- initial margin (quote currency)
-misc varchar(255),                        -- comma delimited list of miscellaneous info
-                                          --   closing = trade closes all or part of a position
-ordertxid varchar(19),                    -- order responsible for execution of trade
-ordertype varchar(255),                   -- order type
-pair varchar(8),                          -- asset pair
-price REAL,                               -- average price order was executed at (quote currency)
-time REAL,                                -- unix timestamp of trade
-type varchar(25),                         -- type of order (buy/sell)
-vol REAL,                                 -- volume (base currency)
-posstatus varchar(25),                    -- position status (open/closed)
-cprice REAL,                              -- average price of closed portion of position (quote currency)
-ccost REAL                                -- total cost of closed portion of position (quote currency)
-cfee REAL,                                -- total fee of closed portion of position (quote currency)
-cvol REAL,                                -- total fee of closed portion of position (quote currency)
-cmargin REAL,                             -- total margin freed in closed portion of position (quote currency)
-net REAL,                                 -- net profit/loss of closed portion of position (quote currency, quote currency scale)
-trades varchar(255),                      -- list of closing trades for position (if available)
-CONSTRAINT uc_tradeid UNIQUE (refid),
-FOREIGN KEY(orderxid) REFERENCES ordersPrivate(orderxid)
-);
-
 -- table for storing description of orders
 CREATE TABLE IF NOT EXISTS descriptionOrders
 (
 id INTEGER PRIMARY KEY AUTOINCREMENT,
 pair varchar(6),                          -- asset pair
 leverage varchar(25),                     -- amount of leverage
-order varchar(255),                       -- order description
+orderstr varchar(255),                    -- order description
 ordertype varchar(255),                   -- order type 
 price REAL,                               -- primary price
 price2 REAL,                              -- secondary price
@@ -99,7 +70,7 @@ opentm REAL,                              -- unix timestamp of when order was pl
 starttm REAL,                             -- unix timestamp of order start time (or 0 if not set)
 expiretm REAL,                            -- unix timestamp of order end time (or 0 if not set)
 closetm REAL,                             -- unix timestamp of when order was closed
-closereason varchar(255)                  -- amount of available order info matching criteria
+closereason varchar(255),                 -- amount of available order info matching criteria
 descr INTEGER,                            -- order description info
 vol REAL,                                 -- volume of order (base currency unless viqc set in oflags)
 vol_exec REAL,                            -- volume executed (base currency unless viqc set in oflags)
@@ -122,6 +93,36 @@ trades varchar(255),                      -- array of trade ids related to order
 FOREIGN KEY(descr) REFERENCES  descriptionOrders(id),
 CONSTRAINT uc_orderid UNIQUE (orderxid)
 );
+
+-- table for storing private trades entries
+CREATE TABLE IF NOT EXISTS tradesPrivate
+(
+id INTEGER PRIMARY KEY AUTOINCREMENT,
+refid varchar(19),                        -- trade id string
+cost REAL,                                -- total cost of order (quote currency)
+fee REAL,                                 -- total fee (quote currency)
+margin REAL,                              -- initial margin (quote currency)
+misc varchar(255),                        -- comma delimited list of miscellaneous info
+                                          --   closing = trade closes all or part of a position
+orderxid varchar(19),                    -- order responsible for execution of trade
+ordertype varchar(255),                   -- order type
+pair varchar(8),                          -- asset pair
+price REAL,                               -- average price order was executed at (quote currency)
+time REAL,                                -- unix timestamp of trade
+type varchar(25),                         -- type of order (buy/sell)
+vol REAL,                                 -- volume (base currency)
+posstatus varchar(25),                    -- position status (open/closed)
+cprice REAL,                              -- average price of closed portion of position (quote currency)
+ccost REAL                                -- total cost of closed portion of position (quote currency)
+cfee REAL,                                -- total fee of closed portion of position (quote currency)
+cvol REAL,                                -- total fee of closed portion of position (quote currency)
+cmargin REAL,                             -- total margin freed in closed portion of position (quote currency)
+net REAL,                                 -- net profit/loss of closed portion of position (quote currency, quote currency scale)
+trades varchar(255),                      -- list of closing trades for position (if available)
+CONSTRAINT uc_tradeid UNIQUE (refid),
+FOREIGN KEY(orderxid) REFERENCES ordersPrivate(orderxid)
+);
+
 
 -- table for storing ledger entries
 CREATE TABLE IF NOT EXISTS ledger
