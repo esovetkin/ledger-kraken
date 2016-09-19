@@ -17,24 +17,7 @@
 
   make account names as configuration
 
-* make entries in EUR with precision up to a second digit. It would be
-  good if can be done by means of ledger
-
-* A simple idea of trading with a spread being large enough to trade.
-
-  Put orders with the same distribution as the current orders.
-
-  One has to introduce the stoppers, in case price drops/rises.
-
-* Collection or historical data: order book with some high values of
-  volume inside, trades history
-
-  All these data should be stored in a nice database in order to store
-  it efficiently.
-
-* a better unifying way to output order book (depth), orders, balance
-
-* an interface similar to ledger. so that one can call
+  an interface similar to ledger. so that one can call
 
   ledger
 
@@ -42,5 +25,15 @@
 
   or ledger <command> to get output directly
 
+* convertion to ledger: make entries in EUR with precision up to a
+  second digit. It would be good if can be done by means of ledger
+
+* a better unifying way to output order book (depth), orders, balance
+
 * Kraken class: read coutner values from a file. Share the counter
   values between different processes?
+
+* db question: how fast is INSERT OR REPLACE. Do I need to create
+  extra indices. Do I need to insert in a better way, in case I only
+  what fields might change.
+
