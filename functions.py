@@ -116,7 +116,7 @@ def reformat(trades, entry_type):
     return res
 
 
-def trade2ledger(entry):
+def trade2ledger(entry, account_fee, account):
     """Convert a list of entries to a ledger format
 
     entry --- list of length 2
@@ -157,7 +157,7 @@ def trade2ledger(entry):
 
     return res
 
-def deposit2ledger(entry):
+def deposit2ledger(entry, account_fee, account):
     """Convert deposit/withdrawal/transfer to a ledger format
     
     entry --- list of length 1
@@ -190,11 +190,12 @@ def deposit2ledger(entry):
     return res
     
 
-def convert2ledger(ledger):
+def convert2ledger(ledger, account_fee, account):
     """Converts ledger entries to a double entry in the format of ledger
 
-    ids --- trade ids
     ledger --- ledger list
+    account_fee --- name for the fee account in ledger
+    account --- name for the kraken account in ledger
 
     return --- list of character in ledger format 
     """
@@ -214,7 +215,7 @@ def convert2ledger(ledger):
                 print("ledger entries are not trade")
                 sys.exit()
             
-            res.append(trade2ledger(entry))
+            res.append(trade2ledger(entry, account_fee, account))
 
         # case of withdrawal/transfer/funding
         if len(entry) == 1:
@@ -222,7 +223,7 @@ def convert2ledger(ledger):
                 print("lonely trade")
                 continue
                 
-            res.append(deposit2ledger(entry))
+            res.append(deposit2ledger(entry, account_fee, account))
 
         # in case some error in ledger
         if len(entry) < 1 or len(entry) > 2:
@@ -260,7 +261,7 @@ def read_timestamp(filename):
         return 1
 
         
-def sync(kraken, ftimestamp, fledger, timeout):
+def sync(kraken, ftimestamp, fledger, timeout, account_fee, account):
     """Synchronise ledger data
     
     ftimestamp --- filename where the timestamp is
@@ -276,7 +277,7 @@ def sync(kraken, ftimestamp, fledger, timeout):
     data = query_all_entries(kraken,'Ledgers','ledger',start,end,timeout)
     
     # convert to ledger format
-    ledger = convert2ledger(reformat(data, entry_type="ledger"))
+    ledger = convert2ledger(reformat(data, entry_type="ledger"), account_fee, account)
 
     with open(fledger, 'a+') as fp:
         fp.write("\n".join(sorted(ledger)))
