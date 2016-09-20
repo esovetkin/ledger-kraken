@@ -46,7 +46,9 @@ lot_multiplier REAL,                       -- amount to multiply lot volume by t
 -- fee_volume_currency ???                    -- volume discount currency
 margin_call REAL,                          -- margin call level
 margin_stop REAL,                          -- stop-out/liquidation margin level
-CONSTRAINT uc_name UNIQUE (name, base, quote)
+CONSTRAINT uc_name UNIQUE (name)
+CONSTRAINT uc_base_quote UNIQUE (base, quote)
+CONSTRAINT uc_altname UNIQUE (altname)
 );
 
 -- creates a table with orders
@@ -65,16 +67,14 @@ CONSTRAINT uc_orderID UNIQUE (price, time, type, volume, pair_id)
 -- creates a table with logs of order Book orders
 -- The data is stored in the following format:
 --
--- Creation time | Last time seen | Order Id
+-- Orderbook timestamp | Last time seen | Order Id
 --
-
--- This structure will allow to reduce the size of database,
--- since only the changes are stored. The only problem
--- appeares with the orders which are at the lower border of
--- the orderBook, since in case of increase of amount of
--- orders, the Last time seen will not be updated until the
--- amount of orders reduced to the previous amount (due to the
--- limitation of kraken, 500 orders).
+-- This structure will allow to reduce the size of database, since
+-- only the changes are stored. The only problem appears with the
+-- orders which are at the lower border of the orderBook, since in
+-- case of increase of amount of orders, the Last time seen will not
+-- be updated until the amount of orders reduced to the previous
+-- amount (due to the limitation of kraken, 500 orders).
 CREATE TABLE IF NOT EXISTS orderBookLog
 (
 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -181,7 +181,8 @@ FOREIGN KEY(refid) REFERENCES tradesPrivate(refid)
 
 
 -- index is needed to search among the names of tradable pairs
-CREATE INDEX IF NOT EXISTS pairs_Index ON pairs (name);
+CREATE INDEX IF NOT EXISTS pairs_name_Index ON pairs (name);
+CREATE INDEX IF NOT EXISTS pairs_altname_Index ON pairs (altname);
 
 -- index is needed to search orderBook_id
 CREATE INDEX IF NOT EXISTS orderid_Index

@@ -127,7 +127,7 @@ class KrakenData(object):
 
     """
 
-    def __init__(self, db_path = '', key_path = ''):
+    def __init__(self, db_path = '', key_path = '', tier = 3):
         """Constructor
 
         Here we initialise database connection, kraken class to
@@ -145,15 +145,12 @@ class KrakenData(object):
         self._dbconn = sqlite3.connect(self._db_path)
         
         # init kraken connection
-        self._kraken = Kraken()
+        self._kraken = Kraken(tier = tier)
         self._kraken.load_key(self._key_path)
 
         # init database
         self._init_db()
         
-        # get tradable pairs
-        self._pairs = self._get_pairs()
-
         
     def _get_pairs(self):
         """Get tradable pairs
@@ -204,8 +201,6 @@ class KrakenData(object):
                               v['aclass_quote'], v['quote'], v['lot'], v['pair_decimals'],
                               v['lot_decimals'], v['lot_multiplier'], v['margin_call'],
                               v['margin_stop']))
-
-        print(pairs)
 
         # try to insert data to the database
         try:
@@ -510,7 +505,7 @@ class KrakenData(object):
         new_data = {}
         time = self._get_ServerTime()
         
-        for pair in self._pairs:
+        for pair in self._get_pairs():
             arg = {'pair': pair, 'count': count}
 
             # try API call
