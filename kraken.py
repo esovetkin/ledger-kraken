@@ -143,13 +143,14 @@ class KrakenData(object):
         
         # init db connection
         self._dbconn = sqlite3.connect(self._db_path)
-
-        self._init_db()
         
         # init kraken connection
         self._kraken = Kraken()
         self._kraken.load_key(self._key_path)
 
+        # init database
+        self._init_db()
+        
         # get tradable pairs
         self._pairs = self._get_pairs()
 
@@ -174,7 +175,55 @@ class KrakenData(object):
 
         return res
 
-    
+    def _init_pairs(self):
+        """Download from Kraken tradable pairs and insert them to table pairs
+        in database
+
+        """
+
+        # try to download tradable pairs
+        try:
+            t = self._kraken.query_public("AssetPairs")
+
+            if (len(t['error'])):
+                raise Exception("API error", t['error'])
+            
+            t = t['result']
+        except Exception as e:
+            print("Error during API call: AssetsPairs", e)
+            raise e
+
+        c = self._dbconn.cursor()
+
+        pairs = []
+        for name, v in t.items():
+            # hmm, there are some pairs with ".d" suffix. I don't know
+            # what they mean, so we simply ignore them
+            if (len(name) == 8):
+                pairs.append((name, v['altname'], v['aclass_base'], v['base'],
+                              v['aclass_quote'], v['quote'], v['lot'], v['pair_decimals'],
+                              v['lot_decimals'], v['lot_multiplier'], v['margin_call'],
+                              v['margin_stop']))
+
+        print(pairs)
+
+        # try to insert data to the database
+        try:
+            c.executemany('''
+            INSERT INTO pairs
+            (name, altname, aclass_base, base, aclass_quote, quote, lot, pair_decimals,
+            lot_decimals, lot_multiplier, margin_call, margin_stop)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+            ''', pairs)
+        except Exception as e:
+            print("Error with db insertion to pairs",e)
+            self._dbconn.rollback()
+            raise e
+
+        # commit changes
+        self._dbconn.commit()
+
+        
     def _init_db(self, path = "./createdb.sql"):
         """Initialising db by running a given sql-script
         
@@ -198,7 +247,11 @@ class KrakenData(object):
         except Exception as e:
             print("Error creating database",e)
             self._dbconn.rollback()
-            raise e        
+            raise e
+
+        # if tables pairs is empty fill it with data from kraken
+        if (len(self._get_pairs()) == 0):
+            self._init_pairs()
 
         self._dbconn.commit()
 

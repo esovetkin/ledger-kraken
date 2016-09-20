@@ -29,12 +29,12 @@ CONSTRAINT uc_name UNIQUE (name)
 CREATE TABLE IF NOT EXISTS pairs
 (
 id INTEGER PRIMARY KEY AUTOINCREMENT,
-name varchar(10) NOT NULL,                 -- pair name, should be unique
-altname varchar(10),                       -- alternate pair name
+name varchar(8) NOT NULL,                  -- pair name, should be unique
+altname varchar(6),                        -- alternate pair name
 aclass_base varchar(25),                   -- asset class of base component
-base varchar(10) NOT NULL,                 -- asset id of base component
+base varchar(4) NOT NULL,                  -- asset id of base component
 aclass_quote varchar(10),                  -- asset class of quote component
-quote varchar(10) NOT NULL,                -- asset id of quote component
+quote varchar(4) NOT NULL,                 -- asset id of quote component
 lot varchar(25),                           -- volume lot size
 pair_decimals INTEGER,                     -- scaling decimal places for pair
 lot_decimals INTEGER,                      -- scaling decimal places for volume
@@ -46,9 +46,7 @@ lot_multiplier REAL,                       -- amount to multiply lot volume by t
 -- fee_volume_currency ???                    -- volume discount currency
 margin_call REAL,                          -- margin call level
 margin_stop REAL,                          -- stop-out/liquidation margin level
-CONSTRAINT uc_name UNIQUE (name),
-CONSTRAINT uc_base UNIQUE (base),
-CONSTRAINT uc_quote UNIQUE (quote)
+CONSTRAINT uc_name UNIQUE (name, base, quote)
 );
 
 -- creates a table with orders
@@ -180,42 +178,6 @@ type varchar(25),                         -- type of ledger entry (deposit, with
 CONSTRAINT uc_ledgerid UNIQUE (ledgerid),
 FOREIGN KEY(refid) REFERENCES tradesPrivate(refid)
 );
-
--- fill table with tradable pairs
-INSERT OR IGNORE INTO pairs(name) VALUES ('XXBTZEUR');
-INSERT OR IGNORE INTO pairs(name) VALUES ('XXBTZUSD');
-INSERT OR IGNORE INTO pairs(name) VALUES ('XXBTZJPY');
-INSERT OR IGNORE INTO pairs(name) VALUES ('XXBTZGBP');
-INSERT OR IGNORE INTO pairs(name) VALUES ('XXBTZCAD');
-
-INSERT OR IGNORE INTO pairs(name) VALUES ('XDAOXETH');
-INSERT OR IGNORE INTO pairs(name) VALUES ('XDAOXXBT');
-INSERT OR IGNORE INTO pairs(name) VALUES ('XDAOZCAD');
-INSERT OR IGNORE INTO pairs(name) VALUES ('XDAOZEUR');
-INSERT OR IGNORE INTO pairs(name) VALUES ('XDAOZGBP');
-INSERT OR IGNORE INTO pairs(name) VALUES ('XDAOZJPY');
-INSERT OR IGNORE INTO pairs(name) VALUES ('XDAOZUSD');
-
-INSERT OR IGNORE INTO pairs(name) VALUES ('XETCXETH');
-INSERT OR IGNORE INTO pairs(name) VALUES ('XETCXXBT');
-INSERT OR IGNORE INTO pairs(name) VALUES ('XETCZEUR');
-INSERT OR IGNORE INTO pairs(name) VALUES ('XETCZUSD');
-
-INSERT OR IGNORE INTO pairs(name) VALUES ('XETHXXBT');
-INSERT OR IGNORE INTO pairs(name) VALUES ('XETHZCAD');
-INSERT OR IGNORE INTO pairs(name) VALUES ('XETHZEUR');
-INSERT OR IGNORE INTO pairs(name) VALUES ('XETHZGBP');
-INSERT OR IGNORE INTO pairs(name) VALUES ('XETHZJPY');
-INSERT OR IGNORE INTO pairs(name) VALUES ('XETHZUSD');
-
-INSERT OR IGNORE INTO pairs(name) VALUES ('XLTCXXBT');
-INSERT OR IGNORE INTO pairs(name) VALUES ('XLTCZCAD');
-INSERT OR IGNORE INTO pairs(name) VALUES ('XLTCZEUR');
-INSERT OR IGNORE INTO pairs(name) VALUES ('XLTCZUSD');
-
-INSERT OR IGNORE INTO pairs(name) VALUES ('XXDGXXBT');        
-INSERT OR IGNORE INTO pairs(name) VALUES ('XXLMXXBT');
-INSERT OR IGNORE INTO pairs(name) VALUES ('XXRPXXBT');
 
 
 -- index is needed to search among the names of tradable pairs
