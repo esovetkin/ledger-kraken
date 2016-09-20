@@ -330,33 +330,20 @@ class KrakenData(object):
         
         # convert data to list
         orderbook_list = []
-        orderbook_list2 = [] # TODO second list is redundant
         for pair, pairValue in new_data.items():
             for askbid, askbidValue in pairValue.items():
                 for item in askbidValue:                
-                    orderbook_list.append((item[0], item[2], askbid, item[1], pair))
-                    orderbook_list2.append((item[2], time, item[0],
-                                            item[2], askbid, item[1], pair))
+                    orderbook_list.append((item[0], item[2], time, askbid, item[1], pair))
 
         try: 
             # add orders
             c.executemany('''
-            INSERT OR IGNORE INTO orderBook 
-            (price, time, type, volume, pair_id) VALUES
-            (?,?,?,?,
+            INSERT OR REPLACE INTO orderBook 
+            (price, time, time_l, type, volume, pair_id) VALUES
+            (?,?,?,?,?,
             (SELECT id from pairs WHERE name = ?))
             ''', orderbook_list)
         
-            # add time of fetch 
-            c.executemany('''
-            INSERT OR REPLACE INTO orderBookLog 
-            (time_c, time_l, orderBook_id) VALUES
-            (?,?,
-            (SELECT id from orderBook WHERE price = ? AND time = ? AND 
-            type = ? AND volume = ? AND 
-            pair_id = (SELECT id from pairs WHERE name = ?) ))
-            ''',
-                 orderbook_list2)
         except Exception as e:
             print("Error with db insertion to ordersBook",e)
             self._dbconn.rollback()
