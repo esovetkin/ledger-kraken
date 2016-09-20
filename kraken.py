@@ -345,25 +345,22 @@ class KrakenData(object):
 
         try: 
             # add orders
-            c.executemany\
-                ('''
-                INSERT OR IGNORE INTO orderBook 
-                (price, time, type, volume, pair_id) VALUES
-                (?,?,?,?,
-                (SELECT id from pairs WHERE name = ?))
-                ''',
-                 orderbook_list)
+            c.executemany('''
+            INSERT OR IGNORE INTO orderBook 
+            (price, time, type, volume, pair_id) VALUES
+            (?,?,?,?,
+            (SELECT id from pairs WHERE name = ?))
+            ''', orderbook_list)
         
             # add time of fetch 
-            c.executemany\
-                ('''
-                INSERT OR REPLACE INTO orderBookLog 
-                (time_c, time_l, orderBook_id) VALUES
-                (?,?,
-                (SELECT id from orderBook WHERE price = ? AND time = ? AND 
-                type = ? AND volume = ? AND 
-                pair_id = (SELECT id from pairs WHERE name = ?) ))
-                ''',
+            c.executemany('''
+            INSERT OR REPLACE INTO orderBookLog 
+            (time_c, time_l, orderBook_id) VALUES
+            (?,?,
+            (SELECT id from orderBook WHERE price = ? AND time = ? AND 
+            type = ? AND volume = ? AND 
+            pair_id = (SELECT id from pairs WHERE name = ?) ))
+            ''',
                  orderbook_list2)
         except Exception as e:
             print("Error with db insertion to ordersBook",e)
@@ -402,8 +399,7 @@ class KrakenData(object):
                               v['oflags'],v['trades'])
 
         try:
-            c.executemany
-            ('''
+            c.executemany('''
             INSERT OR REPLACE INTO ordersPrivate
             (orderxid, userref, status, opentm, starttm, expiretm, closetm,
             closereason, descr_pair, descr_leverage, descr_order, descr_ordertype,
@@ -446,8 +442,7 @@ class KrakenData(object):
                               v['cfee'],v['cvol'],v['cmargin'],v['net'],v['trades'])
 
         try:
-            c.executemany
-            ('''
+            c.executemany('''
             INSERT OR REPLACE INTO tradesPrivate
             (refid, cost, fee, margin, misc, orderxid, ordertype, pair,
             price, time, type, vol, possstatus, cprice, ccost, cfee, cvol,
@@ -486,8 +481,7 @@ class KrakenData(object):
                                v['fee'],v['asset'],v['balance'],v['time'],v['type'])
 
         try:
-            c.executemany
-            ('''
+            c.executemany('''
             INSERT OR REPLACE INTO ledger
             (ledgerid, aclass, refid, amount, fee, asset, balance, time, type)
             VALUES (?,?,?,?,?,?,?,?,?)
