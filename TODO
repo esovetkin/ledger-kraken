@@ -38,3 +38,5 @@
   what fields might change.
 
 * interface to write logs
+
+* parallel query to kraken server?
