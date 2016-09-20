@@ -174,6 +174,3 @@ FOREIGN KEY(refid) REFERENCES tradesPrivate(refid)
 CREATE INDEX IF NOT EXISTS pairs_name_Index ON pairs (name);
 CREATE INDEX IF NOT EXISTS pairs_altname_Index ON pairs (altname);
 
--- index is needed to efficiently put id of the orderBook to orderBookLog
-CREATE INDEX IF NOT EXISTS orders_Index
-ON orderBook (price, time, volume, type, pair_id);
