@@ -378,7 +378,7 @@ class KrakenData(object):
                               v['vol'],v['vol_exec'],v['cost'],
                               v['fee'],v['price'],
                               v['stopprice'],v['limitprice'],v['misc'],
-                              v['oflags'],v['trades'])
+                              v['oflags'],v['trades'],v['descr']['pair'])
 
         try:
             c.executemany('''
@@ -386,8 +386,9 @@ class KrakenData(object):
             (orderxid, userref, status, opentm, starttm, expiretm, closetm,
             closereason, descr_pair, descr_leverage, descr_order, descr_ordertype,
             descr_price, descr_price2, descr_type, descr_close, vol, vol_exec,
-            cost, fee, price, stopprice, limitprice, misc, oflags, trades)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            cost, fee, price, stopprice, limitprice, misc, oflags, trades, pair_id)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,
+            SELECT id FROM pairs WHERE altname = ?)
             ''',
             order_list)
         except Exception as e:
@@ -418,18 +419,21 @@ class KrakenData(object):
         trade_list = []
         for refid,v in new_data.items():
             trade_list.append(refid, v['cost'],v['fee'],v['margin'],
-                              v['misc'],v['orderxid'],v['ordertype'],
+                              v['misc'],v['ordertype'],
                               v['pair'],v['price'],v['time'],v['type'],
                               v['vol'], v['posstatus'],v['cprice'],v['ccost'],
-                              v['cfee'],v['cvol'],v['cmargin'],v['net'],v['trades'])
+                              v['cfee'],v['cvol'],v['cmargin'],v['net'],v['trades'],
+                              v['orderxid'],v['pair'])
 
         try:
             c.executemany('''
-            INSERT OR REPLACE INTO tradesPrivate
+            INSERT INTO tradesPrivate
             (refid, cost, fee, margin, misc, orderxid, ordertype, pair,
             price, time, type, vol, possstatus, cprice, ccost, cfee, cvol,
             cmargin, net, trades)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,
+            SELECT orderxid FROM ordersPrivate WHERE orderxid = ?,
+            SELECT id FROM pairs WHERE name = ?)
             ''',
              trade_list)
         except Exception as e:
@@ -508,7 +512,7 @@ class KrakenData(object):
                 raise e
 
             new_data[pair] = t[pair]
-
+            
         self._insert_to_OrderBook(new_data,time)
 
         

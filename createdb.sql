@@ -93,7 +93,8 @@ starttm REAL,                             -- unix timestamp of order start time 
 expiretm REAL,                            -- unix timestamp of order end time (or 0 if not set)
 closetm REAL,                             -- unix timestamp of when order was closed
 closereason varchar(255),                 -- amount of available order info matching criteria
-descr_pair varchar(6) NOT NULL,           -- asset pair
+descr_pair varchar(6) NOT NULL,           -- asset pair (altname in pairs)
+pair_id INTEGER NOT NULL,                 -- id of the pair in pairs
 descr_leverage varchar(25),               -- amount of leverage
 descr_order varchar(255) NOT NULL,        -- order description
 descr_ordertype varchar(255) NOT NULL,    -- order type 
@@ -119,24 +120,26 @@ oflags varchar(255),                      -- comma delimited list of order flags
                                           --   fciq = prefer fee in quote currency (default if buying)
                                           --   nompp = no market price protection
 trades varchar(255),                      -- array of trade ids related to order (if trades info requested and data available) TODO that is an array?
-CONSTRAINT uc_orderid UNIQUE (orderxid)
+CONSTRAINT uc_orderid UNIQUE (orderxid),
+FOREIGN KEY(pair_id) REFERENCES pairs(id)
 );
 
 -- table for storing private trades entries
 CREATE TABLE IF NOT EXISTS tradesPrivate
 (
 id INTEGER PRIMARY KEY AUTOINCREMENT,
-refid varchar(19),                        -- trade id string
+refid varchar(19) NOT NULL,               -- trade id string
 cost REAL,                                -- total cost of order (quote currency)
 fee REAL,                                 -- total fee (quote currency)
 margin REAL,                              -- initial margin (quote currency)
 misc varchar(255),                        -- comma delimited list of miscellaneous info
                                           --   closing = trade closes all or part of a position
-orderxid varchar(19),                     -- order responsible for execution of trade
+orderxid varchar(19) NOT NULL,            -- order responsible for execution of trade
 ordertype varchar(255),                   -- order type
-pair varchar(8),                          -- asset pair
+pair varchar(8) NOT NULL,                 -- asset pair
+pair_id INTEGER NOT NULL,
 price REAL,                               -- average price order was executed at (quote currency)
-time REAL,                                -- unix timestamp of trade
+time REAL NOT NULL,                       -- unix timestamp of trade
 type varchar(25),                         -- type of order (buy/sell)
 vol REAL,                                 -- volume (base currency)
 posstatus varchar(25),                    -- position status (open/closed)
@@ -149,6 +152,7 @@ net REAL,                                 -- net profit/loss of closed portion o
 trades varchar(255),                      -- list of closing trades for position (if available)
 CONSTRAINT uc_tradeid UNIQUE (refid),
 FOREIGN KEY(orderxid) REFERENCES ordersPrivate(orderxid)
+FOREIGN KEY(pair_id) REFERENCES pairs(id)
 );
 
 
@@ -157,14 +161,14 @@ CREATE TABLE IF NOT EXISTS ledger
 (
 id INTEGER PRIMARY KEY AUTOINCREMENT,
 aclass varchar(25),                       -- only 'currency' according to kraken.com/help/api
-ledgerid varchar(19),                     -- ledger id string
-refid varchar(19),                        -- trade id string
-amount REAL,                              -- transaction amount
-fee REAL,                                 -- transaction fee
-asset varchar(4),                         -- e.g. XXBT
+ledgerid varchar(19) NOT NULL,            -- ledger id string
+refid varchar(19) NOT NULL,               -- trade id string
+amount REAL NOT NULL,                     -- transaction amount
+fee REAL NOT NULL,                        -- transaction fee
+asset varchar(4) NOT NULL,                -- e.g. XXBT
 balance REAL,                             -- resulting balance
-time REAL,                                -- unix timestamp of ledger
-type varchar(25),                         -- type of ledger entry (deposit, withdrawal, trade, margin)
+time REAL NOT NULL,                       -- unix timestamp of ledger
+type varchar(25) NOT NULL,                -- type of ledger entry (deposit, withdrawal, trade, margin)
 CONSTRAINT uc_ledgerid UNIQUE (ledgerid),
 FOREIGN KEY(refid) REFERENCES tradesPrivate(refid)
 );
