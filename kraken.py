@@ -511,7 +511,7 @@ class KrakenData(object):
                 t = t['result']
             except Exception as e:
                 print("Error during API call: Depth for ", pair, e)
-                raise e
+                continue
 
             new_data[pair] = t[pair]
             
