@@ -22,8 +22,9 @@ import time
 
 import sqlite3
 
-from math import ceil
+from math import ceil, isclose 
 
+from collections import defaultdict
 
 class Kraken(krakenex.API):
     """A wrap for the krakekex with API call rate control
@@ -359,8 +360,6 @@ class KrakenData(object):
         new_data --- new data with orders
         time --- time the orders has been fetched (Kraken time)
 
-        NOT TESTED
-        
         """
 
         c = self._dbconn.cursor()
@@ -368,17 +367,17 @@ class KrakenData(object):
         # convert data to list
         order_list = []
         for orderid,v in new_data.items():
-            order_list.append(orderid, v['userref'], v['status'],
-                              v['opentm'],v['starttm'],v['expiretm'],
-                              v['closetm'],v['closereason'],
-                              v['descr']['pair'],v['descr']['leverage'],
-                              v['descr']['order'],v['descr']['ordertype'],
-                              v['descr']['price'],v['descr']['price2'],
-                              v['descr']['type'],v['descr']['close'],
-                              v['vol'],v['vol_exec'],v['cost'],
-                              v['fee'],v['price'],
-                              v['stopprice'],v['limitprice'],v['misc'],
-                              v['oflags'],v['trades'],v['descr']['pair'])
+            order_list.append((orderid, v.get('userref'), v.get('status'),
+                               v.get('opentm'),v.get('starttm'),v.get('expiretm'),
+                               v.get('closetm'),v.get('reason'),
+                               v.get('descr').get('pair'),v.get('descr').get('leverage'),
+                               v.get('descr').get('order'),v.get('descr').get('ordertype'),
+                               v.get('descr').get('price'),v.get('descr').get('price2'),
+                               v.get('descr').get('type'),v.get('descr').get('close'),
+                               v.get('vol'),v.get('vol_exec'),v.get('cost'),
+                               v.get('fee'),v.get('price'),
+                               v.get('stopprice'),v.get('limitprice'),v.get('misc'),
+                               v.get('oflags'),v.get('trades'),v.get('descr').get('pair')))
 
         try:
             c.executemany('''
@@ -388,7 +387,7 @@ class KrakenData(object):
             descr_price, descr_price2, descr_type, descr_close, vol, vol_exec,
             cost, fee, price, stopprice, limitprice, misc, oflags, trades, pair_id)
             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,
-            SELECT id FROM pairs WHERE altname = ?)
+            (SELECT id FROM pairs WHERE altname = ?))
             ''',
             order_list)
         except Exception as e:
@@ -418,13 +417,15 @@ class KrakenData(object):
         # convert data to list
         trade_list = []
         for refid,v in new_data.items():
-            trade_list.append(refid, v['cost'],v['fee'],v['margin'],
-                              v['misc'],v['ordertype'],
-                              v['pair'],v['price'],v['time'],v['type'],
-                              v['vol'], v['posstatus'],v['cprice'],v['ccost'],
-                              v['cfee'],v['cvol'],v['cmargin'],v['net'],v['trades'],
-                              v['orderxid'],v['pair'])
-
+            trade_list.append((refid, v.get('cost'),v.get('fee'),v.get('margin'),
+                               v.get('misc'),v.get('ordertype'),
+                               v.get('pair'),v.get('price'),v.get('time'),v.get('type'),
+                               v.get('vol'), v.get('posstatus'),
+                               v.get('cprice'),v.get('ccost'),
+                               v.get('cfee'),v.get('cvol'),v.get('cmargin'),
+                               v.get('net'),v.get('trades'),
+                               v.get('orderxid'),v.get('pair')))
+                              
         try:
             c.executemany('''
             INSERT INTO tradesPrivate
@@ -432,8 +433,8 @@ class KrakenData(object):
             price, time, type, vol, possstatus, cprice, ccost, cfee, cvol,
             cmargin, net, trades)
             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,
-            SELECT orderxid FROM ordersPrivate WHERE orderxid = ?,
-            SELECT id FROM pairs WHERE name = ?)
+            (SELECT orderxid FROM ordersPrivate WHERE orderxid = ?),
+            (SELECT id FROM pairs WHERE name = ?))
             ''',
              trade_list)
         except Exception as e:
@@ -463,8 +464,9 @@ class KrakenData(object):
         # convert data to list
         ledger_list = []
         for ledgerid, v in new_data.items():
-            ledger_list.append(ledgerid, v['aclass'], v['refid'],v['amount'],
-                               v['fee'],v['asset'],v['balance'],v['time'],v['type'])
+            ledger_list.append((ledgerid, v.get('aclass'), v.get('refid'),v.get('amount'),
+                                v.get('fee'),v.get('asset'),v.get('balance'),
+                                v.get('time'),v.get('type')))
 
         try:
             c.executemany('''
@@ -519,36 +521,66 @@ class KrakenData(object):
     def _sync_OrdersPrivate(self):
         """Download open and closed orders and add them to the database
 
-        NOT FINISHED
+        NOT FINISHED: which way do we need to sync, from start to end or vice versa
 
         """
 
         new_data = {}
         time = self._get_ServerTime()
-
-        # determine time period for the closed order to query
-        start = self._queryTimeStamp("OrdersPrivate")
-        end = time
         
         # try API call
         try:
             # query OpenOrders
             t = self._kraken.query_private("OpenOrders")
-
+            
             if (len(t['error'])):
                 raise Exception("API error", t['error'])
 
-            t = t['result']['open']
-            
-            arg = {'start': start, 'end': end}
-
-            # query ClosedOrders (until the timestamp time)
-            
+            # update dictionary with orders
+            new_data.update(t['result']['open'])                
         except Exception as e:
-            print("Error during API call: Open- Closed- Orders", e)
+            print("Error during API call: OpenOrders", e)
             raise e
 
+        print(new_data)
+        
+        # determine time period for the closed order to query
+        arg = {'start': self._getTimeStamp("OrdersPrivate"), 'end': time}
+        
+        # latest entry time (indicates the end of the queries)
+        latest_entry_time = arg['start']
+        
+        # query closedOrders
+        while True:
+            
+            try:
+                # query ClosedOrders
+                t = self._kraken.query_private("ClosedOrders", arg)
+
+                if (len(t['error'])):
+                    raise Exception("API error", t['error'])
+
+                # update dictionary with orders
+                new_data.update(t['result']['closed'])
+            except Exception as e:
+                print("Error during API call: ClosedOrders",e)
+                raise e
+
+
+            # obtain time of the latest oldest entry
+            arg['start'] = max([t['result']['closed'][key]['closetm']
+                              for key in t['result']['closed'].keys()])
+            
+            if (isclose(arg['start'],latest_entry_time)):
+                break
+            else:
+                latest_entry_time = arg['start']
+
+
+        print(new_data)
+                
         # update database
         self._insert_to_OrdersPrivate(new_data, time)
 
-        
+        # update timestamp
+        self._setTimeStamp("OrdersPrivate", arg['end'])

@@ -13,6 +13,8 @@ import sys
 
 import sqlite3
 
+from math import isclose
+
 def query_all_entries(kraken, query, keyname, start, end, timeout=5):
     """Query all entries present in kraken database
 
@@ -39,7 +41,7 @@ def query_all_entries(kraken, query, keyname, start, end, timeout=5):
     data = dict()
 
     # in this variable is stored the time of the latest
-    latest_entry_time = 0
+    latest_entry_time = arg['end']
     
     while (True):
 
@@ -61,17 +63,17 @@ def query_all_entries(kraken, query, keyname, start, end, timeout=5):
         # left
         if (len(t['result'][keyname]) == 0):
             break
+
+        # obtain the time of the latest oldest
+        arg['end'] = min([t['result'][keyname][key]['time']
+                          for key in t['result'][keyname].keys()])
         
         # the condition will be satisfied if no new data is fetched
-        if (arg['end'] == latest_entry_time):
+        if (isclose(arg['end'],latest_entry_time)):
             break
         else:
             latest_entry_time = arg['end']
         
-        # obtain the time of the latest oldest
-        arg['end'] = min([t['result'][keyname][key]['time']
-                          for key in t['result'][keyname].keys()])
-
         # update dictionary
         data.update(t['result'][keyname])
 
