@@ -17,6 +17,6 @@
 
 from kraken import Kraken, KrakenData
 
-k = KrakenData(db_path="~/data.db", key_path="~/kraken-data/albus-test.key")
+k = KrakenData(db_path="data.db", key_path="~/kraken-data/albus-test.key")
 
 k._sync_OrderBook()
