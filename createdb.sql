@@ -75,6 +75,18 @@ FOREIGN KEY(pair_id) REFERENCES pairs(id),
 CONSTRAINT uc_orderID UNIQUE (price, time, type, volume, pair_id)
 );
 
+-- table containing recent trades
+CREATE TABLE IF NOT EXISTS trades
+(
+pair_id INTEGER NOT NULL,                 -- pair name
+price REAL NOT NULL,                      -- price
+volume REAL NOT NULL,                     -- volume
+time REAL NOT NULL,                       -- time
+buysell varchar(1) NOT NULL,              -- buy/sell
+type varchar(1) NOT NULL,                 -- market/limit
+misc varchar(1),                          -- miscellaneous
+FOREIGN KEY(pair_id) REFERENCES pairs(id)
+);
 
 -- table for stoting orders
 CREATE TABLE IF NOT EXISTS ordersPrivate

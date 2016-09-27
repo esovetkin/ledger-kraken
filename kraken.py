@@ -317,6 +317,38 @@ class KrakenData(object):
         # commit changes in database
         self._dbconn.commit()
 
+    def _insert_to_Trades(self, new_data):
+        """Inserts to a database recent trades
+
+        new_data --- recent trades dictionary
+
+        """
+
+        c = self._dbconn.cursor()
+
+        # convert data to a list
+        trades_list = []
+        for pair, pairValue in new_data.items():
+            for item in pairValue:
+                trades_list.append((pair, item[0], item[1],
+                                    item[2], item[3], item[4], item[5]))
+
+        try:
+            c.executemany('''
+            INSERT OR REPLACE INTO trades
+            (pair_id, price, volume, time, buysell, type, misc) VALUES
+            ((SELECT id from pairs WHERE name = ?),
+            ?,?,?,?,?,?)
+            ''', trades_list)
+
+        except Exception as e:
+            print("Error with db insertion to trades",e)
+            self._dbconn.rollback()
+            raise e
+
+        # commit changes in database
+        self._dbconn.commit()
+
         
     def _insert_to_OrderBook(self, new_data, time):
         """Inserts to a database a given orderbook
@@ -328,7 +360,7 @@ class KrakenData(object):
         
         c = self._dbconn.cursor()
         
-        # convert data to list
+        # convert data to a list
         orderbook_list = []
         for pair, pairValue in new_data.items():
             for askbid, askbidValue in pairValue.items():
@@ -483,8 +515,49 @@ class KrakenData(object):
 
         # commit changes in database
         self._dbconn.commit()
-
         
+
+    def _sync_RecentTrades(self):
+        """Download recent trades data
+
+        Downloads recent trades data for every tradable pair. Store
+        the timestamp of the fetch time in the database.
+        """
+
+        # recent trades data
+        new_data = {}
+        # corresponding to pair timestamps. In is better to store this
+        # as a list and insert to a database only after successful
+        # fetch and insertion of the actual trades.
+        timestamps = {}
+
+        for pair in self._get_pairs():
+            arg = {"pair":pair, "since":self._getTimeStamp("RecentTrades-" + pair)}
+
+            # try API call
+            try:
+                t = self._kraken.query_public("Trades", arg)
+                
+                if (len(t['error'])):
+                    raise Exception("API error", t['error'])
+
+                t = t['result']
+            except Exception as e:
+                print("Error during API call: Depth for ", pair, e)
+                print("Skipping pair:", pair)
+                continue
+
+            new_data[pair] = t[pair]
+            timestamps[pair] = t['last']
+
+        # insert data to a databaase
+        self._insert_to_Trades(new_data)
+
+        # update timestamps
+        for pair,time in timestamps.items():
+            self._setTimeStamp("RecentTrades-" + pair, time)
+
+            
     def _sync_OrderBook(self, count = 500):
         """Download new order book for pairs given in self._pairs
 
@@ -509,6 +582,7 @@ class KrakenData(object):
                 t = t['result']
             except Exception as e:
                 print("Error during API call: Depth for ", pair, e)
+                print("Skipping pair:", pair)
                 continue
 
             new_data[pair] = t[pair]
