@@ -532,7 +532,7 @@ class KrakenData(object):
         timestamps = {}
 
         for pair in self._get_pairs():
-            arg = {"pair":pair, "since":self._getTimeStamp("RecentTrades-" + pair)}
+            arg = {"pair":pair, "since": self._getTimeStamp("RecentTrades-" + pair)}
 
             # try API call
             try:
@@ -547,13 +547,18 @@ class KrakenData(object):
                 print("Skipping pair:", pair)
                 continue
 
+            # new_data and timestamps are appended only in case
+            # successful query
             new_data[pair] = t[pair]
             timestamps[pair] = t['last']
-
+        
         # insert data to a databaase
         self._insert_to_Trades(new_data)
 
-        # update timestamps
+        # update timestamps (this line is reached only in case of
+        # successful insertion of data). The following insertion is
+        # not as complicated as the previous one (less chance to get
+        # mistake).
         for pair,time in timestamps.items():
             self._setTimeStamp("RecentTrades-" + pair, time)
 
