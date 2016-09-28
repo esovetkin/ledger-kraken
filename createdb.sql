@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS timestamps
 (
 id INTEGER PRIMARY KEY AUTOINCREMENT,
 name varchar(25) NOT NULL,                -- name of the synchronisation 
-time REAL NOT NULL,                       -- time of the last synchronisation
+time INTEGER NOT NULL,                    -- time of the last synchronisation
 CONSTRAINT uc_name UNIQUE (name)
 );
 
@@ -78,6 +78,7 @@ CONSTRAINT uc_orderID UNIQUE (price, time, type, volume, pair_id)
 -- table containing recent trades
 CREATE TABLE IF NOT EXISTS trades
 (
+id INTEGER PRIMARY KEY AUTOINCREMENT,
 pair_id INTEGER NOT NULL,                 -- pair name
 price REAL NOT NULL,                      -- price
 volume REAL NOT NULL,                     -- volume
@@ -85,7 +86,8 @@ time REAL NOT NULL,                       -- time
 buysell varchar(1) NOT NULL,              -- buy/sell
 type varchar(1) NOT NULL,                 -- market/limit
 misc varchar(1),                          -- miscellaneous
-FOREIGN KEY(pair_id) REFERENCES pairs(id)
+FOREIGN KEY(pair_id) REFERENCES pairs(id),
+CONSTRAINT uc_tradesID UNIQUE (pair_id, price, volume, time, buysell, type)
 );
 
 -- table for stoting orders
