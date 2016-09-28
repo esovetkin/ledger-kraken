@@ -16,5 +16,6 @@ kraken-tools requires a few dependencies.
 
  + python3.3 or later
  + [krakenex library](https://github.com/veox/python3-krakenex)
+ + [filelock library](https://github.com/dmfrey/FileLock)
  + sqlite, corresponding python library
  
