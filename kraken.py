@@ -30,7 +30,7 @@ class Kraken(krakenex.API):
 
     """
     
-    def __init__(self, key = '', secret = '', conn = None, tier = 3, db_path = "kraken_counter.db"):
+    def __init__(self, key = '', secret = '', conn = None, tier = 3, db_path = "/tmp/kraken_counter.db"):
         """Constructor for the child
         
         The most important part of initialising a child class is to
@@ -177,8 +177,6 @@ class Kraken(krakenex.API):
             print("Error db, while getting counter",e)
             self._dbconn.rollback()
             raise e
-
-        print("Counter = ",self._counter)
             
         # determine if blocked
         if 2 == self._tier:
