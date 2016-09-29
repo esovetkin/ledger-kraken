@@ -31,7 +31,7 @@ class Kraken(krakenex.API):
 
     """
     
-    def __init__(self, key = '', secret = '', conn = None, tier = 3):
+    def __init__(self, key = '', secret = '', conn = None, tier = 3, db_path = "/tmp/kraken_counter.db"):
         """Constructor for the child
         
         The most important part of initialising a child class is to
@@ -39,19 +39,83 @@ class Kraken(krakenex.API):
         rate, see
         <https://www.kraken.com/help/api#api-call-rate-limit>
 
+        key, secret, conn --- parameters for the krakenex.API constructor
+
+        tier --- kraken tier (possible values 2,3 or 4). Exception otherwise
+
+        db_path --- path to the database where the current counter is
+        stored. DB support allows to run several instances and have
+        inter-process communications (at least among the processes
+        that share the common database), so that the queries rate call
+        is not too high.
         """
         # call constructor of the parent
         super(Kraken, self).__init__(key = key, secret = secret, conn = conn)
-
-        # set counter and timestamp
-        self._counter = 0
-        self._counter_time = time.time()
-
+        
+        # set up a database for storing counter and counter_time
+        self._dbconn = sqlite3.connect(db_path, timeout = 5, isolation_level="EXCLUSIVE")
+        
+        # set tier level
         if (tier not in [2,3,4]):
             raise Exception("Wrong tier number")
         
         self._tier = tier
+    
+        # init database
+        self._init_db()
+        
+        # counter_diff is used to update the counter correctly inside
+        # a database
+        self._counter_diff = 0
 
+        # we keep the latest values of the counter. actually it can be
+        # removed (only for debugging purposes)
+        self._counter = 0;
+        self._counter_time = 0;
+
+
+        
+    def _init_db(self):
+        """Create a database with a single table and a single row which
+        contains information about the counter and the timestamp the
+        counter was made
+
+        The aim of the database is to take advatage of the sqlite lock
+        system for interprocess communications.
+        """
+        
+        # try to create a table
+        try:
+            c = self._dbconn.execute('''BEGIN EXCLUSIVE''')
+                        
+            # as a timestamp for the counter we use system time
+            # (time.time()). Mostly, for other timestamps we use
+            # kraken time. It might be an option to replace system
+            # time with Kraken time, but in that case one has to set
+            # counter not to zero. Anyway, at the current point it
+            # seems to be a reasonable solution.
+            c.execute('''
+            CREATE TABLE IF NOT EXISTS counter
+            (
+            Lock char(1) NOT NULL DEFAULT 'X',
+            counter REAL NOT NULL,
+            time REAL NOT NULL,
+            CONSTRAINT pk_Lock PRIMARY KEY (Lock),
+            CONSTRAINT ck_Lock_Locked CHECK (Lock = 'X')
+            )''')
+
+            # set the table wiith default values
+            c.execute('''
+            INSERT OR IGNORE INTO counter 
+            (counter, time) VALUES
+            (0, ?)''', (time.time(),))
+
+            # commit changes in database
+            self._dbconn.commit()            
+        except Exception as e:
+            print("Error creating database (kraken counter)",e)
+            self._dbconn.rollback()
+            raise e                    
         
     def _query_cost(self, urlpath):
         """Determines cost of the urlpath query
@@ -74,22 +138,47 @@ class Kraken(krakenex.API):
 
     def _if_blocked(self):
         """Determines whether call rate limit is too high
+
+        The functions calls the database and updates its values
         
-        return True or False
+        return True or False. True if call rate is too high
 
         """
 
-        # determine new counter: tier 2 users reduce count every 3
-        # seconds, tier 3 users reduce count every 2 seconds, tier 4
-        # users reduce count every 1 second.
-        self._counter -= (time.time() - self._counter_time)/(4-(self._tier-1))
+        try:
+            c = self._dbconn.execute('''BEGIN EXCLUSIVE''')
 
-        # check if the counter is negative
-        if (self._counter < 0):
-            self._counter = 0
+            c.execute("SELECT counter, time FROM counter")
+            self._counter, self._counter_time = c.fetchone()
             
-        self._counter_time = time.time()
+            # determine new counter: tier 2 users reduce count every 3
+            # seconds, tier 3 users reduce count every 2 seconds, tier
+            # 4 users reduce count every 1 second.
+            self._counter -= (time.time() - self._counter_time)/(4-(self._tier-1))
+        
+            # check if the counter is negative
+            if (self._counter < 0):
+                self._counter = 0
+            
+            # update value with the new query cost
+            self._counter += self._counter_diff
+            self._counter_time = time.time()
+            
+            self._counter_diff = 0
 
+            # write updated values
+            c.execute('''
+            INSERT OR REPLACE INTO counter
+            (counter, time) VALUES
+            (?, ?)''', (self._counter, self._counter_time))
+
+            # commit changes
+            self._dbconn.commit()
+        except Exception as e:
+            print("Error db, while getting counter",e)
+            self._dbconn.rollback()
+            raise e
+            
         # determine if blocked
         if 2 == self._tier:
             return ceil(self._counter) >= 15
@@ -105,14 +194,13 @@ class Kraken(krakenex.API):
         """
         
         # determine cost of the query and add up to the counter
-        self._counter += self._query_cost(urlpath)
+        self._counter_diff = self._query_cost(urlpath)
         
         while (self._if_blocked()):
             # print debug info
             print("blocked, counter = ",self._counter)
             # wait a second
-            time.sleep(1)
-            
+            time.sleep(5)
             
         # call the parent function
         return super(Kraken, self)._query(urlpath = urlpath, req = req, \
