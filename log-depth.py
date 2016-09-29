@@ -17,7 +17,7 @@
 
 from kraken import Kraken, KrakenData
 
-k = KrakenData(db_path="data/data.db", key_path="data/albus-test.key")
+k = KrakenData(db_path="data/data.db", key_path="data/pi.key")
 
 k._sync_OrderBook()
 k._sync_RecentTrades()
