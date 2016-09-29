@@ -231,7 +231,7 @@ class KrakenData(object):
         self._key_path = key_path
         
         # init db connection
-        self._dbconn = sqlite3.connect(self._db_path)
+        self._dbconn = sqlite3.connect(self._db_path, timeout = 15)
         
         # init kraken connection
         self._kraken = Kraken(tier = tier)
