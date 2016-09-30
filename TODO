@@ -30,10 +30,6 @@
 
 * a better unifying way to output order book (depth), orders, balance
 
-* db question: how fast is INSERT OR REPLACE. Do I need to create
-  extra indices. Do I need to insert in a better way, in case I only
-  what fields might change.
-
 * interface to write logs
 
 * parallel query to kraken server?
