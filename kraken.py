@@ -426,11 +426,11 @@ class KrakenData(object):
         self._dbconn.commit()
 
         
-    def _insert_to_OrderBook(self, new_data, time):
+    def _insert_to_OrderBook(self, new_data, timestamp):
         """Inserts to a database a given orderbook
         
         new_data --- a new entries orderbook 
-        time --- timestamp of the orderbook download time
+        timestamp --- a list of timestamps of the orderbook download time
 
         """
         
@@ -441,7 +441,7 @@ class KrakenData(object):
         for pair, pairValue in new_data.items():
             for askbid, askbidValue in pairValue.items():
                 for item in askbidValue:                
-                    orderbook_list.append((item[0], item[2], time, askbid, item[1], pair))
+                    orderbook_list.append((item[0], item[2], timestamp[pair], askbid, item[1], pair))
 
         try: 
             # add orders
@@ -657,7 +657,16 @@ class KrakenData(object):
         """
 
         new_data = {}
-        time = self._get_ServerTime()
+        
+        # server time
+        time.server = self._get_ServerTime()
+        
+        # local time. This is used for a more accurate estimates of
+        # the orderBook timestamp
+        time.local = time.time()
+
+        # timestamps of the orderBook entries (for each pair)
+        timestamp = {}
 
         # get pairs list
         if pairs is None:
@@ -680,8 +689,9 @@ class KrakenData(object):
                 continue
                 
             new_data[pair] = t[pair]
+            timestamp[pair] = time.server + int(time.time() - time.local)
             
-        self._insert_to_OrderBook(new_data,time)
+        self._insert_to_OrderBook(new_data,timestamp)
 
         
     def _sync_OrdersPrivate(self):
