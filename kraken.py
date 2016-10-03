@@ -53,7 +53,7 @@ class Kraken(krakenex.API):
         super(Kraken, self).__init__(key = key, secret = secret, conn = conn)
         
         # set up a database for storing counter and counter_time
-        self._dbconn = sqlite3.connect(db_path, timeout = 5, isolation_level="EXCLUSIVE")
+        self._dbconn = sqlite3.connect(db_path, timeout = 15, isolation_level="EXCLUSIVE")
         
         # set tier level
         if (tier not in [2,3,4]):
@@ -218,7 +218,7 @@ class KrakenData(object):
         self._key_path = key_path
         
         # init db connection
-        self._dbconn = sqlite3.connect(self._db_path, timeout = 30)
+        self._dbconn = sqlite3.connect(self._db_path, timeout = 60)
         
         # init kraken connection
         self._kraken = Kraken(tier = tier)
