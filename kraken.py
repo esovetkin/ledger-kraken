@@ -187,7 +187,7 @@ class Kraken(krakenex.API):
         while (self._if_blocked(counter_diff)):
             counter_diff = 0
             # wait a second
-            time.sleep(5)
+            time.sleep(1)
             
         # call the parent function
         return super(Kraken, self)._query(urlpath = urlpath, req = req, \
