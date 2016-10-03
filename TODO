@@ -34,6 +34,8 @@
 
 * parallel query to kraken server?
 
+* parallel query to kraken server?
+
 * log-depth. A better handling path. Now it is relative. Database/key
   cannot be read if it is an absolulte path.
 
