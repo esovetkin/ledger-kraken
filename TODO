@@ -32,16 +32,8 @@
 
 * interface to write logs
 
-* parallel query to kraken server?
-
-* parallel query to kraken server?
-
 * log-depth. A better handling path. Now it is relative. Database/key
   cannot be read if it is an absolulte path.
 
 * log-depth: add lock for the script, so that there are no two
   instances trying to fetch data.
-
-* timeout problem on queries, have a look in
-  kraken.com/help/api. Maybe I can play around with some connection
-  parameters.
