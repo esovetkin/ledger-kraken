@@ -63,16 +63,6 @@ class Kraken(krakenex.API):
     
         # init database
         self._init_db()
-        
-        # counter_diff is used to update the counter correctly inside
-        # a database
-        self._counter_diff = 0
-
-        # we keep the latest values of the counter. actually it can be
-        # removed (only for debugging purposes)
-        self._counter = 0;
-        self._counter_time = 0;
-
 
         
     def _init_db(self):
@@ -136,7 +126,7 @@ class Kraken(krakenex.API):
             return 1
         
 
-    def _if_blocked(self):
+    def _if_blocked(self, counter_diff):
         """Determines whether call rate limit is too high
 
         The functions calls the database and updates its values
@@ -149,28 +139,26 @@ class Kraken(krakenex.API):
             c = self._dbconn.execute('''BEGIN EXCLUSIVE''')
 
             c.execute("SELECT counter, time FROM counter")
-            self._counter, self._counter_time = c.fetchone()
+            counter, counter_time = c.fetchone()
             
             # determine new counter: tier 2 users reduce count every 3
             # seconds, tier 3 users reduce count every 2 seconds, tier
             # 4 users reduce count every 1 second.
-            self._counter -= (time.time() - self._counter_time)/(4-(self._tier-1))
+            counter -= (time.time() - counter_time)/(4-(self._tier-1))
         
             # check if the counter is negative
-            if (self._counter < 0):
-                self._counter = 0
+            if (counter < 0):
+                counter = 0
             
             # update value with the new query cost
-            self._counter += self._counter_diff
-            self._counter_time = time.time()
+            counter += counter_diff
+            counter_time = time.time()
             
-            self._counter_diff = 0
-
             # write updated values
             c.execute('''
             INSERT OR REPLACE INTO counter
             (counter, time) VALUES
-            (?, ?)''', (self._counter, self._counter_time))
+            (?, ?)''', (counter, counter_time))
 
             # commit changes
             self._dbconn.commit()
@@ -181,9 +169,9 @@ class Kraken(krakenex.API):
             
         # determine if blocked
         if 2 == self._tier:
-            return ceil(self._counter) >= 15
+            return ceil(counter) >= 15
         elif 3 == self._tier or 4 == self._tier:
-            return ceil(self._counter) >= 20
+            return ceil(counter) >= 20
 
         
     def _query(self, urlpath, req = {}, conn = None, headers = {}):
@@ -194,11 +182,10 @@ class Kraken(krakenex.API):
         """
         
         # determine cost of the query and add up to the counter
-        self._counter_diff = self._query_cost(urlpath)
+        counter_diff = self._query_cost(urlpath)
         
-        while (self._if_blocked()):
-            # print debug info
-            print("blocked, counter = ",self._counter)
+        while (self._if_blocked(counter_diff)):
+            counter_diff = 0
             # wait a second
             time.sleep(5)
             
