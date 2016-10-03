@@ -19,6 +19,21 @@ from kraken import Kraken, KrakenData
 
 from multiprocessing import Pool
 
+def f(what):
+    if (what == "depth"):
+        try:
+            k.sync_OrderBook()
+        except Exception as e:
+            return 0
+
+    if (what == "trades"):
+        try:
+            k.sync_RecentTrades()
+        except Exception as e:
+            return 0
+
+    return what
+
 def depth(pair):
     try:
         k.sync_OrderBook(pair)
@@ -42,11 +57,9 @@ k = KrakenData(db_path="data/data.db", key_path="data/pi.key")
 pairs = k._get_pairs()
 
 
-pool = Pool(processes=len(pairs))
+pool = Pool(processes=2)
 
-pool.map(depth, pairs)
-
-pool.map(trades, pairs)
+pool.map(f, ["depth","trades"])
 
 pool.close()
 pool.terminate()
