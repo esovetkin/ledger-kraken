@@ -24,12 +24,14 @@ def f(what):
         try:
             k.sync_OrderBook()
         except Exception as e:
+            print("exception during depth sync",e)        
             return 0
 
     if (what == "trades"):
         try:
             k.sync_RecentTrades()
         except Exception as e:
+            print("exception during trades sync",e)            
             return 0
 
     return what
@@ -38,6 +40,7 @@ def depth(pair):
     try:
         k.sync_OrderBook(pair)
     except Exception as e:
+        print("exception during depth sync",e)
         return 0
     
     return pair
@@ -46,6 +49,7 @@ def trades(pair):
     try:
         k.sync_RecentTrades(pair)
     except Exception as e:
+        print("exception during trades sync",e)
         return 0
     
     return pair
