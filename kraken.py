@@ -605,11 +605,13 @@ class KrakenData(object):
         self._dbconn.commit()
         
 
-    def _sync_RecentTrades(self):
+    def sync_RecentTrades(self, pair):
         """Download recent trades data
 
         Downloads recent trades data for every tradable pair. Store
         the timestamp of the fetch time in the database.
+
+        pair --- a tradable pair name
         """
 
         # recent trades data
@@ -619,26 +621,25 @@ class KrakenData(object):
         # fetch and insertion of the actual trades.
         timestamps = {}
 
-        for pair in self._get_pairs():
-            arg = {"pair":pair, "since": self._getTimeStamp("RecentTrades-" + pair)}
+        arg = {"pair":pair, "since": self._getTimeStamp("RecentTrades-" + pair)}
 
-            # try API call
-            try:
-                t = self._kraken.query_public("Trades", arg)
-                
-                if (len(t['error'])):
-                    raise Exception("API error", t['error'])
+        # try API call
+        try:
+            t = self._kraken.query_public("Trades", arg)
+            
+            if (len(t['error'])):
+                raise Exception("API error", t['error'])
+            
+            t = t['result']
+        except Exception as e:
+            print("Error during API call: Depth for ", pair, e)
+            print("Skipping pair:", pair)
+            continue
 
-                t = t['result']
-            except Exception as e:
-                print("Error during API call: Depth for ", pair, e)
-                print("Skipping pair:", pair)
-                continue
-
-            # new_data and timestamps are appended only in case
-            # successful query
-            new_data[pair] = t[pair]
-            timestamps[pair] = t['last']
+        # new_data and timestamps are appended only in case
+        # successful query
+        new_data[pair] = t[pair]
+        timestamps[pair] = t['last']
         
         # insert data to a databaase
         self._insert_to_Trades(new_data)
@@ -651,34 +652,35 @@ class KrakenData(object):
             self._setTimeStamp("RecentTrades-" + pair, time)
 
             
-    def _sync_OrderBook(self, count = 500):
+    def sync_OrderBook(self, pair, count = 500):
         """Download new order book for pairs given in self._pairs
 
         count --- number of entries in the order book to query 500
         (apparently current maximum for kraken is 500)
+        
+        pair --- a tradable pair name
 
         """
 
         new_data = {}
         time = self._get_ServerTime()
         
-        for pair in self._get_pairs():
-            arg = {'pair': pair, 'count': count}
+        arg = {'pair': pair, 'count': count}
 
-            # try API call
-            try:
-                t = self._kraken.query_public("Depth", arg)
+        # try API call
+        try:
+            t = self._kraken.query_public("Depth", arg)
+            
+            if (len(t['error'])):
+                raise Exception("API error", t['error'])
+            
+            t = t['result']
+        except Exception as e:
+            print("Error during API call: Depth for ", pair, e)
+            print("Skipping pair:", pair)
+            continue
 
-                if (len(t['error'])):
-                    raise Exception("API error", t['error'])
-
-                t = t['result']
-            except Exception as e:
-                print("Error during API call: Depth for ", pair, e)
-                print("Skipping pair:", pair)
-                continue
-
-            new_data[pair] = t[pair]
+        new_data[pair] = t[pair]
             
         self._insert_to_OrderBook(new_data,time)
 
