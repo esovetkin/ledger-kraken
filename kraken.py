@@ -231,7 +231,7 @@ class KrakenData(object):
         self._key_path = key_path
         
         # init db connection
-        self._dbconn = sqlite3.connect(self._db_path, timeout = 15)
+        self._dbconn = sqlite3.connect(self._db_path, timeout = 30)
         
         # init kraken connection
         self._kraken = Kraken(tier = tier)
@@ -636,7 +636,7 @@ class KrakenData(object):
         except Exception as e:
             print("Error during API call: Depth for ", pair, e)
             print("Skipping pair:", pair)
-            continue
+            raise e
 
         # new_data and timestamps are appended only in case
         # successful query
@@ -680,7 +680,7 @@ class KrakenData(object):
         except Exception as e:
             print("Error during API call: Depth for ", pair, e)
             print("Skipping pair:", pair)
-            continue
+            raise e
 
         new_data[pair] = t[pair]
             
