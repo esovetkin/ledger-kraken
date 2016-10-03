@@ -32,6 +32,10 @@
 
 * interface to write logs
 
+  import logging
+
+  see also: http://stackoverflow.com/questions/8467978/python-want-logging-with-log-rotation-and-compression
+
 * log-depth. A better handling path. Now it is relative. Database/key
   cannot be read if it is an absolulte path.
 
