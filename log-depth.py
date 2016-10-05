@@ -61,10 +61,11 @@ k = KrakenData(db_path="data/data.db", key_path="data/pi.key")
 pairs = k._get_pairs()
 
 
-pool = Pool(processes=2)
+while (True):
+    pool = Pool(processes=2)
 
-pool.map(f, ["depth","trades"])
+    pool.map(f, ["depth","trades"])
 
-pool.close()
-pool.terminate()
-pool.join()
+    pool.close()
+    pool.terminate()
+    pool.join()
