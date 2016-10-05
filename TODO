@@ -41,3 +41,7 @@
 
 * log-depth: add lock for the script, so that there are no two
   instances trying to fetch data.
+
+* support for other database storage (e.g. MariaDB)
+
+  This might improve some performance.
