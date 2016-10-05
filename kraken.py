@@ -281,7 +281,7 @@ class KrakenData(object):
         # try to insert data to the database
         try:
             c.executemany('''
-            INSERT INTO pairs
+            INSERT OR REPLACE INTO pairs
             (name, altname, aclass_base, base, aclass_quote, quote, lot, pair_decimals,
             lot_decimals, lot_multiplier, margin_call, margin_stop)
             VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
