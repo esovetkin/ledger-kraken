@@ -156,9 +156,9 @@ class Kraken(krakenex.API):
             
             # write updated values
             c.execute('''
-            INSERT OR REPLACE INTO counter
-            (counter, time) VALUES
-            (?, ?)''', (counter, counter_time))
+            UPDATE counter SET counter = ?, time = ?
+            WHERE Lock ='X'
+            ''', (counter, counter_time))
 
             # commit changes
             self._dbconn.commit()
