@@ -280,8 +280,13 @@ class KrakenData(object):
 
         # try to insert data to the database
         try:
+            # note that we INSERT OR IGNORE, so that the primary key
+            # is not updated. Otherwise, the database foreign keys
+            # linked to this PK will be corrupted. Since we use IGNORE
+            # here, then the values cannot be updated, in case fees
+            # are changed (see TODO).
             c.executemany('''
-            INSERT OR REPLACE INTO pairs
+            INSERT OR IGNORE INTO pairs
             (name, altname, aclass_base, base, aclass_quote, quote, lot, pair_decimals,
             lot_decimals, lot_multiplier, margin_call, margin_stop)
             VALUES (?,?,?,?,?,?,?,?,?,?,?,?)

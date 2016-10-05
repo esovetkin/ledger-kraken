@@ -45,3 +45,8 @@
 * support for other database storage (e.g. MariaDB)
 
   This might improve some performance.
+
+* function to update pairs table
+
+  note that foreign key should not change, etc.
+  
