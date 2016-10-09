@@ -55,7 +55,7 @@ def trades(pair):
     return pair
 
 
-k = KrakenData(db_path="data/data.db", key_path="data/pi.key")
+k = KrakenData(db_path="/home/external-drive/kraken-data/data.db", key_path="/home/external-drive/kraken-data/pi.key")
 
 # pairs names
 pairs = k._get_pairs()
