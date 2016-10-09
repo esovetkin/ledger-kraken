@@ -300,7 +300,7 @@ class KrakenData(object):
         self._dbconn.commit()
 
         
-    def _init_db(self, path = "./createdb.sql"):
+    def _init_db(self, path = "/home/jenya/ledger-kraken/createdb.sql"):
         """Initialising db by running a given sql-script
         
         path --- path to the script
