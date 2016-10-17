@@ -116,6 +116,26 @@ def reformat(trades, entry_type):
     return res
 
 
+def _rou(value, currency):
+    """
+    Round up for printing ledger, such that it will fit to double entry 
+
+    value -- the volume of currency
+    currency -- the corresponding currency 
+    """
+    prec_list = {'XBT' : 3,
+                 'EUR' : 3,
+                 'XRP' : 3,
+                 'XLM' : 8
+                 }
+
+    fmt = "{:.%if}"%prec_list[currency] if currency in prec_list else "{:.9f}"
+
+    return fmt.format(value) 
+
+
+
+
 def trade2ledger(entry, account_fee, account):
     """Convert a list of entries to a ledger format
 
@@ -126,12 +146,9 @@ def trade2ledger(entry, account_fee, account):
     curr0 = entry[0]['asset'][1:]
     curr1 = entry[1]['asset'][1:]
 
-    # round only up to 3 significant digit if EUR 
-    rou = lambda p,c : "{:.3f}".format(p) if c=='EUR' else "{:.9f}".format(p)
-
     # cost including fees
-    cost0 = rou(float(entry[0]['amount']) - float(entry[0]['fee']),curr0)    
-    cost1 = rou(float(entry[1]['amount']) - float(entry[1]['fee']),curr1)
+    cost0 = _rou(float(entry[0]['amount']) - float(entry[0]['fee']),curr0)    
+    cost1 = _rou(float(entry[1]['amount']) - float(entry[1]['fee']),curr1)
     
     price0 = "{:<7} {} {}".format(("BUY AT" if float(entry[0]['amount']) > 0 else "SELL AT" ),
                                       abs(float(entry[0]['amount'])/float(entry[1]['amount'])),
@@ -156,8 +173,8 @@ def trade2ledger(entry, account_fee, account):
     
     res ='{} Trade id: {}\n'.format(date,id)
 
-    res+=fmt_fee.format(account_fee,rou(float(entry[0]['fee']),curr0),curr0)
-    res+=fmt_fee.format(account_fee,rou(float(entry[1]['fee']),curr1),curr1)
+    res+=fmt_fee.format(account_fee,_rou(float(entry[0]['fee']),curr0),curr0)
+    res+=fmt_fee.format(account_fee,_rou(float(entry[1]['fee']),curr1),curr1)
 
     res+=fmt.format(account,cost0,curr0, price0)
     res+=fmt.format(account,cost1,curr1, price1)
@@ -174,14 +191,11 @@ def deposit2ledger(entry, account_fee, account):
     # sub-account for withdrawals/transfer/funding
     account2 = account + ":" + entry[0]['type']
 
-    # round only up to 3 significant digit if EUR 
-    rou = lambda p,c : "{:.3f}".format(p) if c=='EUR' else "{:.9f}".format(p)
-
     # currency
     curr = entry[0]['asset'][1:]
 
     # cost including fees
-    cost = rou(float(entry[0]['amount']) - float(entry[0]['fee']),curr)
+    cost = _rou(float(entry[0]['amount']) - float(entry[0]['fee']),curr)
 
     # date
     date = time2date(entry[0]['time'])
@@ -194,7 +208,7 @@ def deposit2ledger(entry, account_fee, account):
     fmt=indent+'{:<26}{:>22} {:3}\n'
     
     res ='{} {}\n'.format(date,id)
-    res+=fmt.format(account_fee,rou(float(entry[0]['fee']),curr),curr)
+    res+=fmt.format(account_fee,_rou(float(entry[0]['fee']),curr),curr)
     res+=fmt.format(account,cost,curr)
     res+=fmt.format(account2,'','')
 
