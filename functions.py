@@ -378,3 +378,33 @@ def order_str(kraken, string):
         raise Exception("API error")
 
 
+def depth_format(result,pair):
+    """
+    Display the table of depth
+
+    result -- result of public query of depth : depth['result']
+    pair -- currency pair 
+
+    """
+    wc = 18 #width of each column
+
+    table ="Order Book {}/{}\n\n".format(pair[1:4],pair[5:])
+
+    fmttitle='{:^%i}  {:^%i}\n'%(2*wc+3,2*wc+3)
+    table+=fmttitle.format('Buying','Selling')
+
+    #table entries formatting
+    fmtt='{0:1}{1:^%i}{0:1}{2:^%i}{0:1}  {0:1}{3:^%i}{0:1}{4:^%i}{0:1}\n'%(wc,wc,wc,wc)
+    hline=fmtt.format('+','-'*wc,'-'*wc,'-'*wc,'-'*wc)
+
+    table+=hline
+    table+=fmtt.format('|','Volume','Price','Price','Volume')
+    table+=hline
+
+    for bid,ask in zip(result[pair]['bids'],result[pair]['asks']):
+        table+=fmtt.format('|',bid[1],bid[0],ask[0],ask[1])
+
+    table+=hline
+
+    return table
+
