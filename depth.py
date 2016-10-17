@@ -4,24 +4,20 @@ import krakenex
 
 import sys
 
-from tabulate import tabulate
+from functions import depth_format
 
 k = krakenex.API()
-
-# load keys
-k.load_key('keys/albus-test.key')
 
 
 
 arg = dict()
 
-arg['pair'] = sys.argv[1]
+arg['pair'] = sys.argv[1] if len(sys.argv) > 1 else 'XXBTZEUR' 
 arg['count'] = '30'
 
 depth = k.query_public('Depth',arg)
 
-
 try:
-    print(tabulate(depth['result'][arg['pair']], tablefmt='orgtbl'))
+    print(depth_format(depth['result'],arg['pair']))
 except:
     print(depth['error'])
