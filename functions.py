@@ -116,6 +116,26 @@ def reformat(trades, entry_type):
     return res
 
 
+def _rou(value, currency):
+    """
+    Round up for printing ledger, such that it will fit to double entry 
+
+    value -- the volume of currency
+    currency -- the corresponding currency 
+    """
+    prec_list = {'XBT' : 3,
+                 'EUR' : 3,
+                 'XRP' : 3,
+                 'XLM' : 8
+                 }
+
+    fmt = "{:.%if}"%prec_list[currency] if currency in prec_list else "{:.9f}"
+
+    return fmt.format(value) 
+
+
+
+
 def trade2ledger(entry, account_fee, account):
     """Convert a list of entries to a ledger format
 
@@ -126,12 +146,9 @@ def trade2ledger(entry, account_fee, account):
     curr0 = entry[0]['asset'][1:]
     curr1 = entry[1]['asset'][1:]
 
-    # round only up to 3 significant digit if EUR 
-    rou = lambda p,c : "{:.3f}".format(p) if c=='EUR' else "{:.9f}".format(p)
-
     # cost including fees
-    cost0 = rou(float(entry[0]['amount']) - float(entry[0]['fee']),curr0)    
-    cost1 = rou(float(entry[1]['amount']) - float(entry[1]['fee']),curr1)
+    cost0 = _rou(float(entry[0]['amount']) - float(entry[0]['fee']),curr0)    
+    cost1 = _rou(float(entry[1]['amount']) - float(entry[1]['fee']),curr1)
     
     price0 = "{:<7} {} {}".format(("BUY AT" if float(entry[0]['amount']) > 0 else "SELL AT" ),
                                       abs(float(entry[0]['amount'])/float(entry[1]['amount'])),
@@ -156,8 +173,8 @@ def trade2ledger(entry, account_fee, account):
     
     res ='{} Trade id: {}\n'.format(date,id)
 
-    res+=fmt_fee.format(account_fee,rou(float(entry[0]['fee']),curr0),curr0)
-    res+=fmt_fee.format(account_fee,rou(float(entry[1]['fee']),curr1),curr1)
+    res+=fmt_fee.format(account_fee,_rou(float(entry[0]['fee']),curr0),curr0)
+    res+=fmt_fee.format(account_fee,_rou(float(entry[1]['fee']),curr1),curr1)
 
     res+=fmt.format(account,cost0,curr0, price0)
     res+=fmt.format(account,cost1,curr1, price1)
@@ -174,14 +191,11 @@ def deposit2ledger(entry, account_fee, account):
     # sub-account for withdrawals/transfer/funding
     account2 = account + ":" + entry[0]['type']
 
-    # round only up to 3 significant digit if EUR 
-    rou = lambda p,c : "{:.3f}".format(p) if c=='EUR' else "{:.9f}".format(p)
-
     # currency
     curr = entry[0]['asset'][1:]
 
     # cost including fees
-    cost = rou(float(entry[0]['amount']) - float(entry[0]['fee']),curr)
+    cost = _rou(float(entry[0]['amount']) - float(entry[0]['fee']),curr)
 
     # date
     date = time2date(entry[0]['time'])
@@ -194,7 +208,7 @@ def deposit2ledger(entry, account_fee, account):
     fmt=indent+'{:<26}{:>22} {:3}\n'
     
     res ='{} {}\n'.format(date,id)
-    res+=fmt.format(account_fee,rou(float(entry[0]['fee']),curr),curr)
+    res+=fmt.format(account_fee,_rou(float(entry[0]['fee']),curr),curr)
     res+=fmt.format(account,cost,curr)
     res+=fmt.format(account2,'','')
 
@@ -386,27 +400,27 @@ def depth_format(result,pair):
     pair -- currency pair 
 
     """
-    wc = 18 #width of each column
+    wc = 16 #width of each column
 
-    table ="Order Book {}/{}\n\n".format(pair[1:4],pair[5:])
+    table = "Order Book {}/{}\n\n".format(pair[1:4],pair[5:])
 
-    fmttitle='{:^%i}  {:^%i}\n'%(2*wc+3,2*wc+3)
+    fmttitle='{:^%i}  {:^%i}\n'%(3*wc+5,3*wc+5)
     table+=fmttitle.format('Buying','Selling')
 
     #table entries formatting
-    fmtt='{0:1}{5:^%i}{0:1}{1:^%i}{0:1}{2:^%i}{0:1} {0:1}{3:^%i}{0:1}{4:^%i}{0:1}{6:^%i}\n'%(wc,wc,wc,wc,wc,wc)
-    hline=fmtt.format('+','-'*wc,'-'*wc,'-'*wc,'-'*wc,'-'*wc,'-'*wc)
+    fmtt='{0:1}{5:^%i}{0:1}{1:^%i}{0:1}{2:^%i}{0:1}  {0:1}{3:^%i}{0:1}{4:^%i}{0:1}{6:^%i}{0:1}\n'%(wc+4,wc,wc,wc,wc,wc+4)
+    hline=fmtt.format('+','-'*wc,'-'*wc,'-'*wc,'-'*wc,'-'*(wc+4),'-'*(wc+4))
 
-    table+=hline
-    table+=fmtt.format('|','Volume','Price','Price','Volume','Cum. Vol','Cum. Vol')
-    table+=hline
+    table += hline
+    table += fmtt.format('|','Volume','Price','Price','Volume','Cum. Vol','Cum. Vol')
+    table += hline
 
-    curr1 = pair[1:4]  #first currency
-    c_bid, c_ask = 0, 0  #cumulative values 
+    curr1 = pair[1:4]
+    c_ask,c_bid = 0,0 #cumulative values
     for bid,ask in zip(result[pair]['bids'],result[pair]['asks']):
         c_bid += float(bid[1])
         c_ask += float(ask[1])
-        table+=fmtt.format('|',bid[1],bid[0],ask[0],ask[1],_rou(c_bid,curr1),_rou(c_ask,curr1))
+        table += fmtt.format('|',bid[1],bid[0],ask[0],ask[1],_rou(c_bid,curr1),_rou(c_ask,curr1))
 
     table+=hline
 
