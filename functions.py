@@ -400,23 +400,27 @@ def depth_format(result,pair):
     pair -- currency pair 
 
     """
-    wc = 18 #width of each column
+    wc = 16 #width of each column
 
-    table ="Order Book {}/{}\n\n".format(pair[1:4],pair[5:])
+    table = "Order Book {}/{}\n\n".format(pair[1:4],pair[5:])
 
-    fmttitle='{:^%i}  {:^%i}\n'%(2*wc+3,2*wc+3)
+    fmttitle='{:^%i}  {:^%i}\n'%(3*wc+5,3*wc+5)
     table+=fmttitle.format('Buying','Selling')
 
     #table entries formatting
-    fmtt='{0:1}{1:^%i}{0:1}{2:^%i}{0:1}  {0:1}{3:^%i}{0:1}{4:^%i}{0:1}\n'%(wc,wc,wc,wc)
-    hline=fmtt.format('+','-'*wc,'-'*wc,'-'*wc,'-'*wc)
+    fmtt='{0:1}{5:^%i}{0:1}{1:^%i}{0:1}{2:^%i}{0:1}  {0:1}{3:^%i}{0:1}{4:^%i}{0:1}{6:^%i}{0:1}\n'%(wc+4,wc,wc,wc,wc,wc+4)
+    hline=fmtt.format('+','-'*wc,'-'*wc,'-'*wc,'-'*wc,'-'*(wc+4),'-'*(wc+4))
 
-    table+=hline
-    table+=fmtt.format('|','Volume','Price','Price','Volume')
-    table+=hline
+    table += hline
+    table += fmtt.format('|','Volume','Price','Price','Volume','Cum. Vol','Cum. Vol')
+    table += hline
 
+    curr1 = pair[1:4]
+    c_ask,c_bid = 0,0 #cumulative values
     for bid,ask in zip(result[pair]['bids'],result[pair]['asks']):
-        table+=fmtt.format('|',bid[1],bid[0],ask[0],ask[1])
+        c_bid += float(bid[1])
+        c_ask += float(ask[1])
+        table += fmtt.format('|',bid[1],bid[0],ask[0],ask[1],_rou(c_bid,curr1),_rou(c_ask,curr1))
 
     table+=hline
 
