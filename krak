@@ -1,0 +1,136 @@
+#!/usr/bin/env python3
+import sys
+
+from configparser import ConfigParser
+
+from argparse import ArgumentParser
+
+import krakenex
+
+from functions import depth_format
+
+
+
+def _getconfig(conff='krak.conf'):
+    """
+    Set the configuration. If it specify in configuration file, then
+    override the default values.
+
+    Keyword arguments :
+    conff -- configuration file location
+    """
+
+    # the configuration with its default values
+    conf = { 'personal': {
+                'key' : "keys/mykey.key" 
+                },
+             'ledger' : {
+                 'filename_ledger' : "data/ledger_kraken.log",
+                 'filename_timestamp' : "data/timestamp",
+                 'account_fee' : "Expenses:Taxes:Kraken",
+                 'account':"Assets:Kraken"
+                 },
+             'query' : {
+                'timeout' : 5
+             }
+           }
+    
+    #read from configuration file
+    config = ConfigParser()
+    config.read(conff)
+
+    #replace with the ones set in configuration file
+    for section in config.sections():
+        for keys,val in config[section].items():
+            conf[section][keys] = val
+
+    return conf
+
+
+
+
+def _depth(args):
+    """
+    Print order book for the corresponding pair
+
+    pair -- pair name
+
+    """
+
+    k = krakenex.API()
+
+    arg = dict()
+
+    arg['pair'] = args.pair
+    arg['count'] = '30'
+
+    depth = k.query_public('Depth',arg)
+
+    try:
+        print(depth_format(depth['result'],arg['pair']))
+    except:
+        print(depth['error'])
+
+
+
+
+def _orders():
+    """
+    Print orders : active, closed, all
+    """
+    k.load_key('keys/cica.key')
+
+
+
+    orders = k.query_private('OpenOrders')
+
+    orders = orders['result']['open']
+
+    t = [{'pair':orders[key]['descr']['pair'],\
+          'type':orders[key]['descr']['type'],\
+          'price':orders[key]['descr']['price'],\
+          'vol':orders[key]['vol'],\
+          'key':key,\
+          'status':orders[key]['status']} for key in orders.keys()]
+
+
+
+
+
+
+if __name__ == '__main__':
+    """
+    Kraken tools
+    """
+    # configuration
+    conf = _getconfig()
+
+    # top level parser
+    parser = ArgumentParser(prog='krak',description='Tool for Kraken stuff')
+    subparsers = parser.add_subparsers(help='sub-commands of krak')
+
+    # parsers for subcommands and its options
+
+    # depth
+    p_depth = subparsers.add_parser('depth', help='Print order book')
+    p_depth.add_argument('pair', default='XXBTZEUR', type=str, help='Currency pair')
+    p_depth.set_defaults(func=_depth)
+
+
+    args = parser.parse_args()
+    args.func(args)
+
+    
+    
+
+
+
+
+
+
+
+
+
+    
+
+
