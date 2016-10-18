@@ -7,6 +7,8 @@ from argparse import ArgumentParser
 
 import krakenex
 
+from kraken import Kraken
+
 from functions import depth_format
 
 
@@ -51,18 +53,21 @@ def _getconfig(conff='krak.conf'):
 
 def _depth(args):
     """
-    Print order book for the corresponding pair
+    Print order book for the corresponding pair. 
+    Public query, does not require key
 
-    pair -- pair name
+    Keyword arguments : 
 
+    args.pair -- pair name
+    args.n -- number of entry displayed
     """
 
-    k = krakenex.API()
+    k = Kraken()
 
     arg = dict()
 
-    arg['pair'] = args.pair
-    arg['count'] = '30'
+    arg['pair'] = args.p
+    arg['count'] = args.n
 
     depth = k.query_public('Depth',arg)
 
@@ -80,7 +85,7 @@ def _orders():
     """
     k.load_key('keys/cica.key')
 
-
+    k = Kraken()
 
     orders = k.query_private('OpenOrders')
 
@@ -113,12 +118,20 @@ if __name__ == '__main__':
 
     # depth
     p_depth = subparsers.add_parser('depth', help='Print order book')
-    p_depth.add_argument('pair', default='XXBTZEUR', type=str, help='Currency pair')
+    p_depth.add_argument('-p', default='XXBTZEUR', type=str, help='Currency pair')
+    p_depth.add_argument('-n', default=30, type=int, help='Number of entry displayed')
     p_depth.set_defaults(func=_depth)
 
+    # order
+    p_order = subparsers.add_parser('order', help='Print order')
 
     args = parser.parse_args()
-    args.func(args)
+
+    try :
+        args.func(args)
+    except : 
+        parser.print_help()
+        sys.exit(0)
 
     
     
