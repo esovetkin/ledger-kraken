@@ -5,7 +5,7 @@ from configparser import ConfigParser
 
 from argparse import ArgumentParser
 
-import krakenex
+from kraken import Kraken
 
 from functions import depth_format
 
@@ -47,8 +47,6 @@ def _getconfig(conff='krak.conf'):
     return conf
 
 
-
-
 def _depth(args):
     """
     Print order book for the corresponding pair
@@ -57,7 +55,7 @@ def _depth(args):
 
     """
 
-    k = krakenex.API()
+    k = Kraken()
 
     arg = dict()
 
