@@ -1,12 +1,13 @@
 #!/bin/env python3
 
-import krakenex
-
 import sys
 
 from tabulate import tabulate
 
-k = krakenex.API()
+from kraken import Kraken
+
+
+k = Kraken()
 
 # load keys
 k.load_key('keys/albus-test.key')
