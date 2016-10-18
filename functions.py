@@ -394,15 +394,19 @@ def depth_format(result,pair):
     table+=fmttitle.format('Buying','Selling')
 
     #table entries formatting
-    fmtt='{0:1}{1:^%i}{0:1}{2:^%i}{0:1}  {0:1}{3:^%i}{0:1}{4:^%i}{0:1}\n'%(wc,wc,wc,wc)
-    hline=fmtt.format('+','-'*wc,'-'*wc,'-'*wc,'-'*wc)
+    fmtt='{0:1}{5:^%i}{0:1}{1:^%i}{0:1}{2:^%i}{0:1} {0:1}{3:^%i}{0:1}{4:^%i}{0:1}{6:^%i}\n'%(wc,wc,wc,wc,wc,wc)
+    hline=fmtt.format('+','-'*wc,'-'*wc,'-'*wc,'-'*wc,'-'*wc,'-'*wc)
 
     table+=hline
-    table+=fmtt.format('|','Volume','Price','Price','Volume')
+    table+=fmtt.format('|','Volume','Price','Price','Volume','Cum. Vol','Cum. Vol')
     table+=hline
 
+    curr1 = pair[1:4]  #first currency
+    c_bid, c_ask = 0, 0  #cumulative values 
     for bid,ask in zip(result[pair]['bids'],result[pair]['asks']):
-        table+=fmtt.format('|',bid[1],bid[0],ask[0],ask[1])
+        c_bid += float(bid[1])
+        c_ask += float(ask[1])
+        table+=fmtt.format('|',bid[1],bid[0],ask[0],ask[1],_rou(c_bid,curr1),_rou(c_ask,curr1))
 
     table+=hline
 
