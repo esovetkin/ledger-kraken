@@ -19,7 +19,7 @@ filename_keys = "keys/albus-test.key"
 timeout = 5
 
 
-import krakenex
+from kraken import Kraken
 
 from functions import sync
 
@@ -30,7 +30,7 @@ if __name__ == '__main__':
     Describe what it does 
     """
     # init krakenex API
-    kraken = krakenex.API()
+    kraken = Kraken()
     kraken.load_key(filename_keys)
     
     # connection handler. \todo set timeout variable properly (depending on tier)

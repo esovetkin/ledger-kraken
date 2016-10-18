@@ -1,10 +1,10 @@
 #!/bin/env python3
 
-import krakenex
+from kraken import Kraken
 
 import sys
 
-k = krakenex.API()
+k = Kraken()
 
 # load keys
 k.load_key('keys/albus.key')

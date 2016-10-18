@@ -1,14 +1,12 @@
 #!/bin/env python3
 
-import krakenex
-
 import sys
+
+from kraken import Kraken
 
 from functions import depth_format
 
-k = krakenex.API()
-
-
+k = Kraken()
 
 arg = dict()
 
