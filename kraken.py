@@ -38,15 +38,15 @@ class Kraken(krakenex.API):
         rate, see
         <https://www.kraken.com/help/api#api-call-rate-limit>
 
-        key, secret, conn --- parameters for the krakenex.API constructor
+        :param tier: kraken tier (possible values 2,3 or 4). Exception
+        otherwise
 
-        tier --- kraken tier (possible values 2,3 or 4). Exception otherwise
-
-        db_path --- path to the database where the current counter is
+        :param db_path: path to the database where the current counter is
         stored. DB support allows to run several instances and have
         inter-process communications (at least among the processes
         that share the common database), so that the queries rate call
         is not too high.
+
         """
         # call constructor of the parent
         super(Kraken, self).__init__(key = key, secret = secret, conn = conn)
@@ -119,7 +119,7 @@ class Kraken(krakenex.API):
     def _query_cost(self, urlpath):
         """Determines cost of the urlpath query
 
-        urlpath --- path specified in _query
+        :param urlpath: path specified in _query
 
         return integer
 
@@ -140,7 +140,7 @@ class Kraken(krakenex.API):
 
         The functions calls the database and updates its values
         
-        return True or False. True if call rate is too high
+        :return: True or False. True if call rate is too high
 
         """
 
@@ -221,8 +221,8 @@ class KrakenData(object):
         Here we initialise database connection, kraken class to
         connect to exchange and other helping variables.
 
-        db_path --- path for the database location
-        key_path --- kraken key path
+        :db_path: path for the database location
+        :key_path: kraken key path
 
         """
         # init path for db and API keys
@@ -245,7 +245,7 @@ class KrakenData(object):
 
         The query is made from a table pairs from database
 
-        return --- list of tradable pairs
+        :return: list of tradable pairs
 
         """
         c = self._dbconn.cursor()
@@ -310,8 +310,8 @@ class KrakenData(object):
     def _init_db(self, path = "./createdb.sql"):
         """Initialising db by running a given sql-script
         
-        path --- path to the script
-        return --- nothing
+        :param path: path to the script
+        :return: nothing
         """
         c = self._dbconn.cursor()
 
@@ -342,7 +342,7 @@ class KrakenData(object):
     def _get_ServerTime(self):
         """Get Kraken server time
         
-        return --- float (actually, integer)
+        :return: float (actually, integer)
 
         """
 
@@ -363,9 +363,9 @@ class KrakenData(object):
     def _getTimeStamp(self, name):
         """Query timestamp name from the "timestamps" table
 
-        name --- string of the timestamp name
+        :param name: string of the timestamp name
 
-        return --- float. "0" in case of absense of record
+        :return: float. "0" in case of absense of record
 
         """
         
@@ -384,10 +384,10 @@ class KrakenData(object):
     def _setTimeStamp(self, name, time):
         """Set a timestamp in the "timestamps" table
         
-        name --- string of the timestamp name
-        time --- new timestamp value
+        :param name: string of the timestamp name
+        :param time: new timestamp value
 
-        return --- nothing
+        :return: nothing
 
         """
         
@@ -408,7 +408,7 @@ class KrakenData(object):
     def _insert_to_Trades(self, new_data):
         """Inserts to a database recent trades
 
-        new_data --- recent trades dictionary
+        :param new_data: recent trades dictionary
 
         """
 
@@ -441,8 +441,8 @@ class KrakenData(object):
     def _insert_to_OrderBook(self, new_data, time):
         """Inserts to a database a given orderbook
         
-        new_data --- a new entries orderbook 
-        time --- timestamp of the orderbook download time
+        :param new_data: a new entries orderbook 
+        :param time: timestamp of the orderbook download time
 
         """
         
@@ -476,8 +476,8 @@ class KrakenData(object):
     def _insert_to_OrdersPrivate(self, new_data, time):
         """Insert new orders to the database
 
-        new_data --- new data with orders
-        time --- time the orders has been fetched (Kraken time)
+        :param new_data: new data with orders
+        :param time: time the orders has been fetched (Kraken time)
 
         NOT TESTED
         
@@ -526,8 +526,8 @@ class KrakenData(object):
     def _insert_to_TradesPrivate(self, new_data, time):
         """Insert new private trades to the database
         
-        new_data --- new data with orders
-        time --- time the trades has been fetched (Kraken time)
+        :param new_data: new data with orders
+        :param time: time the trades has been fetched (Kraken time)
 
         NOT TESTED
 
@@ -571,8 +571,8 @@ class KrakenData(object):
     def _insert_to_ledger(self, new_data, time):
         """Insert new ledger entries to the database
 
-        new_data --- new data with ledger entries
-        time --- time the ledger has been fetched (Kraken time)
+        :param new_data: new data with ledger entries
+        :param time: time the ledger has been fetched (Kraken time)
 
         NOT TESTED
 
@@ -654,7 +654,7 @@ class KrakenData(object):
     def _sync_OrderBook(self, count = 500):
         """Download new order book for pairs given in self._pairs
 
-        count --- number of entries in the order book to query 500
+        :param count: number of entries in the order book to query 500
         (apparently current maximum for kraken is 500)
 
         """

@@ -22,14 +22,14 @@ def query_all_entries(kraken, query, keyname, start, end, timeout=5):
 
     Note, this function is supposed to be used only once in a life.
     
-    kraken --- krakenex API
-    query  --- query name of the API
-    keyname --- keyname in the resulting dictionary
-    start --- earliest time point (in seconds from epoch)
-    end --- latest time point (in seconds from epoch)
-    timeout --- timeout in seconds before queries
+    :param kraken: krakenex API
+    :param query: query name of the API
+    :param keyname: keyname in the resulting dictionary
+    :param start: earliest time point (in seconds from epoch)
+    :param end: latest time point (in seconds from epoch)
+    :param timeout: timeout in seconds before queries
 
-    return --- dictionary
+    :return: dictionary
     """
     
     # dictionary with extra parameters to the query
@@ -90,10 +90,10 @@ def time2date(t):
     """
     Convert time to ledger date format
     
-    time   --- time in seconds since epoch
-    entry_type --- is it trade or ledger
+    :param time: time in seconds since epoch
+    :param entry_type: is it trade or ledger
 
-    return --- string of date in ledger format
+    :return: string of date in ledger format
     """
     return time.strftime('%Y/%m/%d', time.localtime(t))
 
@@ -102,9 +102,9 @@ def reformat(trades, entry_type):
     """
     Reformat raw data from query to human readable format. 
 
-    trades --- dict with trades/ledger data
+    :param trades: dict with trades/ledger data
 
-    return --- list with trades/ledger entries
+    :return: list with trades/ledger entries
     """
 
     res=list()
@@ -119,8 +119,8 @@ def reformat(trades, entry_type):
 def trade2ledger(entry, account_fee, account):
     """Convert a list of entries to a ledger format
 
-    entry --- list of length 2
-    result --- string in ledger format
+    :param entry: list of length 2
+    :param result: string in ledger format
     """    
     # currency
     curr0 = entry[0]['asset'][1:]
@@ -168,8 +168,8 @@ def trade2ledger(entry, account_fee, account):
 def deposit2ledger(entry, account_fee, account):
     """Convert deposit/withdrawal/transfer to a ledger format
     
-    entry --- list of length 1
-    result --- string in ledger format
+    :param entry: list of length 1
+    :param result: string in ledger format
     """
     # sub-account for withdrawals/transfer/funding
     account2 = account + ":" + entry[0]['type']
@@ -204,11 +204,11 @@ def deposit2ledger(entry, account_fee, account):
 def convert2ledger(ledger, account_fee, account):
     """Converts ledger entries to a double entry in the format of ledger
 
-    ledger --- ledger list
-    account_fee --- name for the fee account in ledger
-    account --- name for the kraken account in ledger
+    :param ledger: ledger list
+    :param account_fee: name for the fee account in ledger
+    :param account: name for the kraken account in ledger
 
-    return --- list of character in ledger format 
+    :return: list of character in ledger format 
     """
     # get unique trade ids
     ids = list(set([x['refid'] for x in ledger]))
@@ -249,9 +249,9 @@ def convert2ledger(ledger, account_fee, account):
 def save_timestamp(ledger, filename):
     """Save the time of the latest trade in file
     
-    ledger --- downloaded ledger data
-    filename --- filename of the timestamp
-    return --- nothing
+    :param ledger: downloaded ledger data
+    :param filename: filename of the timestamp
+    :return: nothing
     """
     time = max([x['time'] for key,x in ledger.items()])
 
@@ -262,8 +262,8 @@ def save_timestamp(ledger, filename):
 def read_timestamp(filename):
     """Read the time of the latest trade from file
 
-    filename --- filename of the timestamp
-    return --- float, should be time in seconds from epoch
+    :param filename: filename of the timestamp
+    :return: float, should be time in seconds from epoch
     """
     try:
         with open(filename,'r') as fp:
@@ -275,9 +275,9 @@ def read_timestamp(filename):
 def sync(kraken, ftimestamp, fledger, timeout, account_fee, account):
     """Synchronise ledger data
     
-    ftimestamp --- filename where the timestamp is
-    fledger --- filename of the ledger file
-    timeout --- timeout between transactions
+    :param ftimestamp: filename where the timestamp is
+    :param fledger: filename of the ledger file
+    :param timeout: timeout between transactions
 
     """
     # get the period of time
@@ -303,6 +303,8 @@ def str2krakenOrder(string):
     """Converts string with order to dictionary
     
     In case it fails to convert an exception is called
+
+    :param string: convert string to kraken order format
 
     """
     string = string.split()
@@ -349,7 +351,7 @@ def order_str(kraken, string):
     Convert a given string into kraken API language and tries to set
     the order. Print given from kraken feedback.
 
-    string --- string like 'buy 0.5 BTC @ 534 EUR'
+    :param string: string like 'buy 0.5 BTC @ 534 EUR'
 
     """
 
@@ -382,8 +384,8 @@ def depth_format(result,pair):
     """
     Display the table of depth
 
-    result -- result of public query of depth : depth['result']
-    pair -- currency pair 
+    :param result: result of public query of depth : depth['result']
+    :param pair: currency pair 
 
     """
     wc = 18 #width of each column
