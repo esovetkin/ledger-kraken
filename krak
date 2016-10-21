@@ -47,8 +47,6 @@ def _getconfig(conff='krak.conf'):
     return conf
 
 
-
-
 def _depth(args):
     """
     Print order book for the corresponding pair. 
