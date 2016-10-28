@@ -20,9 +20,12 @@ import krakenex
 
 import time
 
+import os
+
 import sqlite3
 
 from math import ceil
+
 
 
 class Kraken(krakenex.API):
@@ -307,7 +310,7 @@ class KrakenData(object):
         self._dbconn.commit()
 
         
-    def _init_db(self, path = "./createdb.sql"):
+    def _init_db(self, path = os.path.dirname(os.path.realpath(__file__)) + "/createdb.sql"):
         """Initialising db by running a given sql-script
         
         path --- path to the script
