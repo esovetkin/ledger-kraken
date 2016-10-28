@@ -27,7 +27,9 @@ from functions import depth_format
 
 from multiprocessing import Pool
 
-def _getconfig(conff='~/.krak/conf'):
+import os 
+
+def _getconfig(conff=os.path.expanduser('~/.krak/conf')):
     """
     Set the configuration. If it specify in configuration file, then
     override the default values.
@@ -154,13 +156,13 @@ def _orders():
 
 
 
-
-
-
 if __name__ == '__main__':
     """
     Kraken tools
     """
+    # create dirs at home
+    os.makedirs(os.path.expanduser("~/.krak"), exist_ok=True)
+    
     # configuration
     conf = _getconfig()
 

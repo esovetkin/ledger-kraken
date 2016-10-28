@@ -53,6 +53,8 @@ class Kraken(krakenex.API):
         """
         # call constructor of the parent
         super(Kraken, self).__init__(key = key, secret = secret, conn = conn)
+
+        db_path = os.path.expanduser(db_path)
         
         # set up a database for storing counter and counter_time
         self._dbconn = sqlite3.connect(db_path, timeout = 5, isolation_level="EXCLUSIVE")
@@ -229,8 +231,8 @@ class KrakenData(object):
 
         """
         # init path for db and API keys
-        self._db_path = db_path
-        self._key_path = key_path
+        self._db_path = os.path.expanduser(db_path)
+        self._key_path = os.path.expanduser(key_path)
         
         # init db connection
         self._dbconn = sqlite3.connect(self._db_path)
