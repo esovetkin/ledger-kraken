@@ -73,8 +73,8 @@ def _depth(args):
 
     Keyword arguments : 
 
-    args.pair -- pair name
-    args.n -- number of entry displayed
+    :args.p: pair name
+    :args.n: number of entry displayed
     """
 
     k = Kraken()
