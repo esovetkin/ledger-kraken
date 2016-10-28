@@ -21,10 +21,11 @@ from configparser import ConfigParser
 
 from argparse import ArgumentParser
 
-from kraken import Kraken
+from kraken import Kraken, KrakenData
 
 from functions import depth_format
 
+from multiprocessing import Pool
 
 
 def _getconfig(conff='krak.conf'):
@@ -89,7 +90,46 @@ def _depth(args):
         print(depth['error'])
 
 
+def _logger(args):
+    """
+    Fork a process to a background. 
+    Continuously record depth and trades.
 
+    Keyword arguments:
+
+    :args.db:  location of the database
+    :args.key: location of the database
+    """
+
+    def f(what):
+        if (what == "depth"):
+            try:
+                k.sync_OrderBook()
+            except Exception as e:
+                print("exception during depth sync",e)        
+                return 0
+
+        if (what == "trades"):
+            try:
+                k.sync_RecentTrades()
+            except Exception as e:
+                print("exception during trades sync",e)            
+                return 0
+
+        return what
+    
+    k = KrakenData(db_path=args.db, key_path=args.key)
+
+    # while (True):
+    #     pool = Pool(processes = 2)
+
+    #     pool.map(f, ["depth","trades"])
+
+    #     pool.close()
+    #     pool.terminate()
+    #     pool.join()
+
+    
 
 def _orders():
     """
@@ -137,6 +177,19 @@ if __name__ == '__main__':
     # order
     p_order = subparsers.add_parser('order', help='Print order')
 
+    # logger
+    p_logger = subparsers.add_parser('logger',
+                                     help='Continuously log depth and trades in background')
+    p_logger.add_argument('--db',
+                          default=conf['logger']['db'],
+                          type=str,
+                          help='Location of the database')
+    p_logger.add_argument('--key',
+                          default=conf['personal']['key'],
+                          type=str,
+                          help='Location of the key to use')
+    p_logger.set_defaults(func=_logger)
+    
     args = parser.parse_args()
 
     try :
