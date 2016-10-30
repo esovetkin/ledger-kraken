@@ -25,7 +25,7 @@ from kraken import Kraken, KrakenData
 
 from functions import depth_format
 
-from multiprocessing import Pool
+import threading
 
 import os 
 
@@ -96,6 +96,25 @@ def _depth(args):
         logging.error(depth['error'])
 
 
+def depth(args):
+    kraken = KrakenData(db_path=args.db, key_path=args.key)
+    
+    while (True):
+        try:
+            kraken.sync_OrderBook()
+        except Exception as e:
+            logging.error("Exception during depth sync",e)
+            
+def trades(args):
+    kraken = KrakenData(db_path=args.db, key_path=args.key)
+    
+    while (True):
+        try:
+            kraken.sync_RecentTrades()
+        except Exception as e:
+            logging.error("Exception during trades sync",e)
+
+                                    
 def _logger(args):
     """
     Fork a process to a background. 
@@ -103,40 +122,17 @@ def _logger(args):
 
     Keyword arguments:
 
-    :args.db:  location of the database
-    :args.key: location of the database
+    :args.db:      location of the database
+    :args.key:     location of the database
     """
-
-    def f(what):
-        if (what == "depth"):
-            try:
-                k.sync_OrderBook()
-            except Exception as e:
-                print("exception during depth sync",e)        
-                return 0
-
-        if (what == "trades"):
-            try:
-                k.sync_RecentTrades()
-            except Exception as e:
-                print("exception during trades sync",e)            
-                return 0
-
-        return what
     
-    k = KrakenData(db_path=args.db, key_path=args.key)
-
-    # while (True):
-    #     pool = Pool(processes = 2)
-
-    #     pool.map(f, ["depth","trades"])
-
-    #     pool.close()
-    #     pool.terminate()
-    #     pool.join()
+    th1 = threading.Thread(target=depth, args=(args,))
+    th2 = threading.Thread(target=trades, args=(args,))
+    
+    th1.start()
+    th2.start()
 
     
-
 def _orders():
     """
     Print orders : active, closed, all
