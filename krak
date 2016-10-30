@@ -163,10 +163,12 @@ if __name__ == '__main__':
     
     # configuration
     conf = _getconfig()
+    
+    # top level parser \todo how to format epilog 
+    parser = ArgumentParser(prog='krak',description='Kraken tools',
+                            epilog=('''See also configuration file: ~/.krak/conf '''))
 
-    # top level parser
-    parser = ArgumentParser(prog='krak',description='Tool for Kraken stuff')
-    subparsers = parser.add_subparsers(help='sub-commands of krak')
+    subparsers = parser.add_subparsers(help='Commands')
 
     # parsers for subcommands and its options
 
