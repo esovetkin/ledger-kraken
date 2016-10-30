@@ -13,6 +13,8 @@ import sys
 
 import sqlite3
 
+import logging
+
 def query_all_entries(kraken, query, keyname, start, end, timeout=5):
     """Query all entries present in kraken database
 
@@ -52,7 +54,7 @@ def query_all_entries(kraken, query, keyname, start, end, timeout=5):
                 raise Exception("API error occured",t['error'])
 
         except Exception as e:
-            print("Error while quering ",query,": ",e)
+            logging.error("Error while quering ",query,": ",e)
             # sleep
             time.sleep(timeout)
             continue
@@ -307,10 +309,10 @@ def sync(kraken, ftimestamp, fledger, timeout, account_fee, account):
     with open(fledger, 'a+') as fp:
         fp.write("\n".join(sorted(ledger)))
 
-    print("Wrote " + str(len(ledger)) + " entries.")
+    logging.info("Wrote " + str(len(ledger)) + " entries.")
 
     save_timestamp(data, ftimestamp)
-    print("Saved timestamp")
+    logging.info("Saved timestamp")
 
 
 def str2krakenOrder(string):
@@ -372,7 +374,7 @@ def order_str(kraken, string):
     try:
         arg = str2krakenOrder(string)
     except Exception as exc:
-        print(exc)
+        logging.error(exc)
         raise
         
 
@@ -381,14 +383,14 @@ def order_str(kraken, string):
         t = kraken.query_private('AddOrder',arg)
         print(t)
     except Exception as exc:
-        print(exc)
+        logging.error(exc)
         raise
     except:
-        print("No connection")
+        logging.error("No connection")
         raise
 
     if (len(t['error'])):
-        print("API error occured",t['error'])
+        logging.error("API error occured",t['error'])
         raise Exception("API error")
 
 

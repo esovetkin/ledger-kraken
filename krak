@@ -29,6 +29,8 @@ from multiprocessing import Pool
 
 import os 
 
+import logging
+
 def _getconfig(conff=os.path.expanduser('~/.krak/conf')):
     """
     Set the configuration. If it specify in configuration file, then
@@ -91,7 +93,7 @@ def _depth(args):
     try:
         print(depth_format(depth['result'],arg['pair']))
     except:
-        print(depth['error'])
+        logging.error(depth['error'])
 
 
 def _logger(args):
@@ -192,6 +194,10 @@ if __name__ == '__main__':
                           default=conf['personal']['key'],
                           type=str,
                           help='Location of the key to use')
+    p_logger.add_argument('--logfile',
+                          default="",
+                          type=str,
+                          help='Location of the log-file')
     p_logger.set_defaults(func=_logger)
 
     # print help in case no arguments
@@ -200,9 +206,23 @@ if __name__ == '__main__':
         sys.exit(1)
     
     args = parser.parse_args()
+    
+    # set up logging
+    logfmt='%(asctime)s : %(filename)s : %(funcName)s : %(levelname)s : %(message)s'
+    
+    if ( "" != args.logfile ):
+        try:
+            logging.basicConfig(filename=os.path.expanduser(args.logfile),
+                                format=logfmt)
+        except FileNotFoundError as e:
+            print(e)
+            sys.exit(1)
+    else:
+        logging.basicConfig(stream=sys.stdout, format = logfmt)
 
+    # execute parameters
     try:
         args.func(args)
     except Exception as e:
-        print(e)
+        logging.error(e)
         sys.exit(1)
