@@ -55,6 +55,9 @@ def _getconfig(conff=os.path.expanduser('~/.krak/conf')):
                  },
              'query' : {
                 'timeout' : 5
+             },
+             'other' : {
+                 'logfile' : ''
              }
            }
     
@@ -167,9 +170,9 @@ if __name__ == '__main__':
     # top level parser \todo how to format epilog 
     parser = ArgumentParser(prog='krak',description='Kraken tools',
                             epilog=('''See also configuration file: ~/.krak/conf '''))
-
+    
     parser.add_argument('--logfile',
-                        default="",
+                        default=conf['other']['logfile'],
                         type=str,
                         help='Location of the log-file')
 
