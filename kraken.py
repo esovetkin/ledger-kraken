@@ -20,11 +20,15 @@ import krakenex
 
 import time
 
+import os
+
 import sqlite3
 
 from math import ceil, isclose 
 
 from collections import defaultdict
+
+import logging
 
 class Kraken(krakenex.API):
     """A wrap for the krakekex with API call rate control
@@ -51,6 +55,8 @@ class Kraken(krakenex.API):
         """
         # call constructor of the parent
         super(Kraken, self).__init__(key = key, secret = secret, conn = conn)
+
+        db_path = os.path.expanduser(db_path)
         
         # set up a database for storing counter and counter_time
         self._dbconn = sqlite3.connect(db_path, timeout = 15, isolation_level="EXCLUSIVE")
@@ -103,7 +109,7 @@ class Kraken(krakenex.API):
             # commit changes in database
             self._dbconn.commit()            
         except Exception as e:
-            print("Error creating database (kraken counter)",e)
+            logging.error("Error creating database (kraken counter)",e)
             self._dbconn.rollback()
             raise e                    
         
@@ -163,7 +169,7 @@ class Kraken(krakenex.API):
             # commit changes
             self._dbconn.commit()
         except Exception as e:
-            print("Error db, while getting counter",e)
+            logging.error("Error db, while getting counter",e)
             self._dbconn.rollback()
             raise e
             
@@ -214,8 +220,8 @@ class KrakenData(object):
 
         """
         # init path for db and API keys
-        self._db_path = db_path
-        self._key_path = key_path
+        self._db_path = os.path.expanduser(db_path)
+        self._key_path = os.path.expanduser(key_path)
         
         # init db connection
         self._dbconn = sqlite3.connect(self._db_path, timeout = 60)
@@ -243,7 +249,7 @@ class KrakenData(object):
             for name in c.execute("SELECT name FROM pairs"):
                 res.append(name[0])
         except Exception as e:
-            print("Error on getting pair names",e)
+            logging.error("Error on getting pair names",e)
             raise e
 
         return res
@@ -263,7 +269,7 @@ class KrakenData(object):
             
             t = t['result']
         except Exception as e:
-            print("Error during API call: AssetsPairs", e)
+            logging.error("Error during API call: AssetsPairs", e)
             raise e
 
         c = self._dbconn.cursor()
@@ -292,7 +298,7 @@ class KrakenData(object):
             VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
             ''', pairs)
         except Exception as e:
-            print("Error with db insertion to pairs",e)
+            logging.error("Error with db insertion to pairs",e)
             self._dbconn.rollback()
             raise e
 
@@ -300,7 +306,7 @@ class KrakenData(object):
         self._dbconn.commit()
 
         
-    def _init_db(self, path = "./createdb.sql"):
+    def _init_db(self, path = os.path.dirname(os.path.realpath(__file__)) + "/createdb.sql"):
         """Initialising db by running a given sql-script
         
         path --- path to the script
@@ -313,7 +319,7 @@ class KrakenData(object):
             with open(path,'r') as f:
                 script = f.read()
         except Exception as e:
-            print("cannot read createdb.sql to variable",e)
+            logging.error("cannot read createdb.sql to variable",e)
             raise e
 
         # try to execute script with a database. Rollback in case of
@@ -321,7 +327,7 @@ class KrakenData(object):
         try:
             c.executescript(script)
         except Exception as e:
-            print("Error creating database",e)
+            logging.error("Error creating database",e)
             self._dbconn.rollback()
             raise e
 
@@ -347,7 +353,7 @@ class KrakenData(object):
             
             t = t['result']
         except Exception as e:
-            print("Error during API call: Time", e)
+            logging.error("Error during API call: Time", e)
             raise e
 
         return t['unixtime']
@@ -369,8 +375,8 @@ class KrakenData(object):
             c.execute("SELECT time FROM timestamps WHERE name = ?", (str(name),))
             return c.fetchone()[0]
         except Exception as e:
-            print("Error during quering timestamp for '" + str(name) + "', ",e)
-            print("Assuming timestamp is zero")
+            logging.error("Error during quering timestamp for '" + str(name) + "', ",e)
+            logging.warning("Assuming timestamp is zero")
             return 0
 
         
@@ -391,7 +397,7 @@ class KrakenData(object):
             c.execute("INSERT OR REPLACE INTO timestamps(time, name) VALUES (?,?)",
                       (time, name))
         except Exception as e:
-            print("Error during inserting to timestamps",e)
+            logging.error("Error during inserting to timestamps",e)
             self._dbconn.rollback()
             raise e
 
@@ -423,7 +429,7 @@ class KrakenData(object):
             ''', trades_list)
 
         except Exception as e:
-            print("Error with db insertion to trades",e)
+            logging.error("Error with db insertion to trades",e)
             self._dbconn.rollback()
             raise e
 
@@ -458,7 +464,7 @@ class KrakenData(object):
             ''', orderbook_list)
         
         except Exception as e:
-            print("Error with db insertion to ordersBook",e)
+            logging.error("Error with db insertion to ordersBook",e)
             self._dbconn.rollback()
             raise e
 
@@ -503,7 +509,7 @@ class KrakenData(object):
             ''',
             order_list)
         except Exception as e:
-            print("Error with db insertion to ordersPrivate",e)
+            logging.error("Error with db insertion to ordersPrivate",e)
             self._dbconn.rollback()
             raise e
         
@@ -550,7 +556,7 @@ class KrakenData(object):
             ''',
              trade_list)
         except Exception as e:
-            print("Error with db insertion to tradesPrivate",e)
+            logging.error("Error with db insertion to tradesPrivate",e)
             self._dbconn.rollback()
             raise e
 
@@ -588,7 +594,7 @@ class KrakenData(object):
             ''',
              ledger_list)
         except Exception as e:
-            print("Error with db insertion to ledger",e)
+            logging.error("Error with db insertion to ledger",e)
             self._dbconn.rollback()
             raise e
 
@@ -631,8 +637,8 @@ class KrakenData(object):
                 
                 t = t['result']
             except Exception as e:
-                print("Error during API call: Depth for ", pair, e)
-                print("Skipping pair:", pair)
+                logging.error("Error during API call: Depth for ", pair, e)
+                logging.warning("Skipping pair:", pair)
                 continue
                 
             # new_data and timestamps are appended only in case
@@ -689,8 +695,8 @@ class KrakenData(object):
             
                 t = t['result']
             except Exception as e:
-                print("Error during API call: Depth for ", pair, e)
-                print("Skipping pair:", pair)
+                logging.error("Error during API call: Depth for ", pair, e)
+                logging.warning("Skipping pair:", pair)
                 continue
                 
             new_data[pair] = t[pair]
@@ -756,7 +762,6 @@ class KrakenData(object):
                 break
             else:
                 latest_entry_time = arg['start']
-
 
         print(new_data)
                 
