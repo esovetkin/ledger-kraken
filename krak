@@ -26,6 +26,7 @@ from kraken import Kraken, KrakenData
 from functions import depth_format
 
 import threading
+from multiprocessing import Pool
 
 import os 
 
@@ -96,25 +97,29 @@ def _depth(args):
         logging.error(depth['error'])
 
 
-def depth(args):
+def _logger_helper(what, args):
+    """
+    Helper function for _logger
+
+    :what: either "depth" of "trades"
+    :args: same as args in _logger
+    """
     kraken = KrakenData(db_path=args.db, key_path=args.key)
     
-    while (True):
-        try:
-            kraken.sync_OrderBook()
-        except Exception as e:
-            logging.error("Exception during depth sync",e)
-            
-def trades(args):
-    kraken = KrakenData(db_path=args.db, key_path=args.key)
-    
-    while (True):
+    if ("depth" == what):
+        while (True):
+            try:
+                kraken.sync_OrderBook()
+            except Exception as e:
+                logging.error("Exception during depth sync",e)
+        
+    if ("trades" == what):
         try:
             kraken.sync_RecentTrades()
         except Exception as e:
             logging.error("Exception during trades sync",e)
 
-                                    
+            
 def _logger(args):
     """
     Fork a process to a background. 
@@ -125,13 +130,14 @@ def _logger(args):
     :args.db:      location of the database
     :args.key:     location of the database
     """
-    
-    th1 = threading.Thread(target=depth, args=(args,))
-    th2 = threading.Thread(target=trades, args=(args,))
-    
-    th1.start()
-    th2.start()
 
+    pool = Pool(processes = 2)
+
+    pool.starmap(_logger_helper, [("depth",args),("trades",args)])
+
+    pool.close()
+    pool.terminate()
+    pool.join()
     
 def _orders():
     """
