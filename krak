@@ -180,13 +180,7 @@ if __name__ == '__main__':
     parser.add_argument('--logfile',
                         default=conf['other']['logfile'],
                         type=str,
-                        help='Location of the log-file')
-
-
-    parser.add_argument('--logfile',
-                        default="",
-                        type=str,
-                        help='Location of the log-file')
+                        help='Location of the log-file. Config default: ' + conf['personal']['logfile'])
 
 
     subparsers = parser.add_subparsers(help='Commands')
