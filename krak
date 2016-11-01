@@ -43,8 +43,7 @@ def _getconfig(conff=os.path.expanduser('~/.krak/conf')):
 
     # the configuration with its default values
     conf = { 'personal': {
-                'key' : "~/.krak/mykey.key",
-                'logfile' : ""
+                'key' : "~/.krak/mykey.key"
                 },
              'logger': {
                  'db' : '~/.krak/data.db'
@@ -181,7 +180,7 @@ if __name__ == '__main__':
                         default=conf['other']['logfile'],
                         type=str,
                         help='Location of the log-file. Config default: ' + \
-                        "stdout" if ("" == conf['personal']['logfile']) else conf['personal']['logfile'] )
+                        "stdout" if ("" == conf['other']['logfile']) else conf['other']['logfile'] )
 
 
     subparsers = parser.add_subparsers(help='Commands')
