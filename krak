@@ -117,11 +117,13 @@ def _logger_helper(what, args):
                 logging.error("Exception during depth sync",e)
         
     if ("trades" == what):
-        try:
-            kraken.sync_RecentTrades()
-        except Exception as e:
-            logging.error("Exception during trades sync",e)
-
+        while (True):
+            try:
+                kraken.sync_RecentTrades()
+                logging.info("Trades sync finished")
+            except Exception as e:
+                logging.error("Exception during trades sync",e)
+            
             
 def _logger(args):
     """
