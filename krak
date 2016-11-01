@@ -113,15 +113,18 @@ def _logger_helper(what, args):
         while (True):
             try:
                 kraken.sync_OrderBook()
+                logging.info("Depth sync finished")
             except Exception as e:
                 logging.error("Exception during depth sync",e)
         
     if ("trades" == what):
-        try:
-            kraken.sync_RecentTrades()
-        except Exception as e:
-            logging.error("Exception during trades sync",e)
-
+        while (True):
+            try:
+                kraken.sync_RecentTrades()
+                logging.info("Trades sync finished")
+            except Exception as e:
+                logging.error("Exception during trades sync",e)
+            
             
 def _logger(args):
     """
@@ -222,13 +225,13 @@ if __name__ == '__main__':
     if ( "" != args.logfile ):
         try:
             logging.basicConfig(filename=os.path.expanduser(args.logfile),
-                                format=logfmt)
+                                format=logfmt, level = logging.DEBUG)
         except FileNotFoundError as e:
             print(e)
             sys.exit(1)
     else:
-        logging.basicConfig(stream=sys.stdout, format = logfmt)
-
+        logging.basicConfig(stream=sys.stdout, format = logfmt, level = logging.DEBUG)
+                
     # execute parameters
     try:
         args.func(args)
