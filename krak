@@ -126,7 +126,7 @@ def _logger(args):
     Keyword arguments:
 
     :args.db:      location of the database
-    :args.key:     location of the database
+    :args.key:     location of the key
     """
     
     th1 = threading.Thread(target=depth, args=(args,))
