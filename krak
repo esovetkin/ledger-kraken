@@ -183,8 +183,8 @@ if __name__ == '__main__':
 
     # depth
     p_depth = subparsers.add_parser('depth', help='Print order book')
-    p_depth.add_argument('-p', default='XXBTZEUR', type=str, help='Currency pair')
-    p_depth.add_argument('-n', default=30, type=int, help='Number of entry displayed')
+    p_depth.add_argument('-p', default='XXBTZEUR', type=str, help='Currency pair. Default: XXBTZEUR')
+    p_depth.add_argument('-n', default=30, type=int, help='Number of entry displayed. Default: 30')
     p_depth.set_defaults(func=_depth)
 
     # order
@@ -196,11 +196,11 @@ if __name__ == '__main__':
     p_logger.add_argument('--db',
                           default=conf['logger']['db'],
                           type=str,
-                          help='Location of the database')
+                          help='Location of the database. Default: ' + conf['logger']['db'] )
     p_logger.add_argument('--key',
                           default=conf['personal']['key'],
                           type=str,
-                          help='Location of the key to use')
+                          help='Location of the key to use. Default: ' + conf['personal']['key'])
     p_logger.set_defaults(func=_logger)
 
     # print help in case no arguments
