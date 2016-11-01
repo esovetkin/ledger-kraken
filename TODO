@@ -7,46 +7,25 @@
   Run script to compare the current table with a table on kraken and
   change the differences.
 
-* Command-line tool configuration:
-
-  location of ledger-file
-  location of keys
-  directory for the data files
-
-  ? import configparser
-
-  make account names as configuration
-
-  an interface similar to ledger. so that one can call
-
-  ledger
-
-  and then specify commands in an appeared command line
-
-  or ledger <command> to get output directly
-
 * convertion to ledger: make entries in EUR with precision up to a
   second digit. It would be good if can be done by means of ledger
 
-* a better unifying way to output order book (depth), orders, balance
+  cica's done most of possible, I think
 
-* interface to write logs
+* log rotate, check
 
-  import logging
+  https://docs.python.org/3/howto/logging-cookbook.html
 
-  see also: http://stackoverflow.com/questions/8467978/python-want-logging-with-log-rotation-and-compression
+* logging:
 
-* log-depth. A better handling path. Now it is relative. Database/key
-  cannot be read if it is an absolulte path.
+  better handling both file and stdout, see
 
-* log-depth: add lock for the script, so that there are no two
-  instances trying to fetch data.
+  https://docs.python.org/3/howto/logging-cookbook.html
 
-* support for other database storage (e.g. MariaDB)
+* db question: how fast is INSERT OR REPLACE. Do I need to create
+  extra indices. Do I need to insert in a better way, in case I only
+  what fields might change.
 
-  This might improve some performance.
-
-* function to update pairs table
-
-  note that foreign key should not change, etc.
-  
+* timeout problem on queries, have a look in
+  kraken.com/help/api. Maybe I can play around with some connection
+  parameters.
