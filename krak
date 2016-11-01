@@ -175,8 +175,7 @@ if __name__ == '__main__':
     
     # top level parser \todo how to format epilog 
     parser = ArgumentParser(prog='krak',description='Kraken tools',
-                            epilog=('''See also configuration file: ~/.krak/conf '''))
-    
+                            epilog=('''See also configuration file: ~/.krak/conf '''))    
     parser.add_argument('--logfile',
                         default=conf['other']['logfile'],
                         type=str,
@@ -202,11 +201,11 @@ if __name__ == '__main__':
     p_logger.add_argument('--db',
                           default=conf['logger']['db'],
                           type=str,
-                          help='Location of the database. Default: ' + conf['logger']['db'] )
+                          help='Location of the database. Config default: ' + conf['logger']['db'] )
     p_logger.add_argument('--key',
                           default=conf['personal']['key'],
                           type=str,
-                          help='Location of the key to use. Default: ' + conf['personal']['key'])
+                          help='Location of the key to use. Config default: ' + conf['personal']['key'])
     p_logger.set_defaults(func=_logger)
 
     # print help in case no arguments
