@@ -15,6 +15,9 @@ import sqlite3
 
 from math import isclose
 
+import logging
+
+
 def query_all_entries(kraken, query, keyname, start, end, timeout=5):
     """Query all entries present in kraken database
 
@@ -54,7 +57,7 @@ def query_all_entries(kraken, query, keyname, start, end, timeout=5):
                 raise Exception("API error occured",t['error'])
 
         except Exception as e:
-            print("Error while quering ",query,": ",e)
+            logging.error("Error while quering ",query,": ",e)
             # sleep
             time.sleep(timeout)
             continue
@@ -118,26 +121,49 @@ def reformat(trades, entry_type):
     return res
 
 
+def _rou(value, currency):
+    """
+    Round up for printing ledger, such that it will fit to double entry 
+
+    value -- the volume of currency
+    currency -- the corresponding currency 
+    """
+    prec_list = {'XBT' : 3,
+                 'EUR' : 3,
+                 'XRP' : 3,
+                 'XLM' : 8
+                 }
+
+    fmt = "{:.%if}"%prec_list[currency] if currency in prec_list else "{:.9f}"
+
+    return fmt.format(value) 
+
+
+
+
 def trade2ledger(entry, account_fee, account):
     """Convert a list of entries to a ledger format
 
     entry --- list of length 2
     result --- string in ledger format
     """    
-    # cost including fees
-    cost0 = "{:.9f}".format(float(entry[0]['amount']) - float(entry[0]['fee']))    
-    cost1 = "{:.9f}".format(float(entry[1]['amount']) - float(entry[1]['fee']))
-    
-    price0 = "{:<7} {:.9f} {}".format(("BUY AT" if float(entry[0]['amount']) > 0 else "SELL AT" ),
-                                      abs(float(entry[0]['amount'])/float(entry[1]['amount'])),
-                                      entry[0]['asset'] + entry[1]['asset']) 
-    price1 = "{:<7} {:.9f} {}".format(("BUY AT" if float(entry[1]['amount']) > 0 else "SELL AT" ),
-                                      abs(float(entry[1]['amount'])/float(entry[0]['amount'])),
-                                      entry[1]['asset'] + entry[0]['asset']) 
-    
     # currency
     curr0 = entry[0]['asset'][1:]
     curr1 = entry[1]['asset'][1:]
+
+    # cost including fees
+    cost0 = _rou(float(entry[0]['amount']) - float(entry[0]['fee']),curr0)    
+    cost1 = _rou(float(entry[1]['amount']) - float(entry[1]['fee']),curr1)
+    
+    price0 = "{:<7} {} {}".format(("BUY AT" if float(entry[0]['amount']) > 0 else "SELL AT" ),
+                                      abs(float(entry[0]['amount'])/float(entry[1]['amount'])),
+                                      entry[0]['asset'] + entry[1]['asset']) 
+    price1 = "{:<7} {} {}".format(("BUY AT" if float(entry[1]['amount']) > 0 else "SELL AT" ),
+                                      abs(float(entry[1]['amount'])/float(entry[0]['amount'])),
+                                      entry[1]['asset'] + entry[0]['asset']) 
+    
+
+    
     
     # date
     date = time2date(entry[0]['time'])
@@ -151,13 +177,15 @@ def trade2ledger(entry, account_fee, account):
     fmt=indent+'{:<26}{:>22} {:3} ; {}\n'
     
     res ='{} Trade id: {}\n'.format(date,id)
-    res+=fmt_fee.format(account_fee,entry[0]['fee'],curr0)
-    res+=fmt_fee.format(account_fee,entry[1]['fee'],curr1)
+
+    res+=fmt_fee.format(account_fee,_rou(float(entry[0]['fee']),curr0),curr0)
+    res+=fmt_fee.format(account_fee,_rou(float(entry[1]['fee']),curr1),curr1)
 
     res+=fmt.format(account,cost0,curr0, price0)
     res+=fmt.format(account,cost1,curr1, price1)
 
     return res
+
 
 def deposit2ledger(entry, account_fee, account):
     """Convert deposit/withdrawal/transfer to a ledger format
@@ -168,11 +196,11 @@ def deposit2ledger(entry, account_fee, account):
     # sub-account for withdrawals/transfer/funding
     account2 = account + ":" + entry[0]['type']
 
-    # cost including fees
-    cost = "{:.9f}".format(float(entry[0]['amount']) - float(entry[0]['fee']))
-
     # currency
     curr = entry[0]['asset'][1:]
+
+    # cost including fees
+    cost = _rou(float(entry[0]['amount']) - float(entry[0]['fee']),curr)
 
     # date
     date = time2date(entry[0]['time'])
@@ -185,7 +213,7 @@ def deposit2ledger(entry, account_fee, account):
     fmt=indent+'{:<26}{:>22} {:3}\n'
     
     res ='{} {}\n'.format(date,id)
-    res+=fmt.format(account_fee,entry[0]['fee'],curr)
+    res+=fmt.format(account_fee,_rou(float(entry[0]['fee']),curr),curr)
     res+=fmt.format(account,cost,curr)
     res+=fmt.format(account2,'','')
 
@@ -284,10 +312,10 @@ def sync(kraken, ftimestamp, fledger, timeout, account_fee, account):
     with open(fledger, 'a+') as fp:
         fp.write("\n".join(sorted(ledger)))
 
-    print("Wrote " + str(len(ledger)) + " entries.")
+    logging.info("Wrote " + str(len(ledger)) + " entries.")
 
     save_timestamp(data, ftimestamp)
-    print("Saved timestamp")
+    logging.info("Saved timestamp")
 
 
 def str2krakenOrder(string):
@@ -349,7 +377,7 @@ def order_str(kraken, string):
     try:
         arg = str2krakenOrder(string)
     except Exception as exc:
-        print(exc)
+        logging.error(exc)
         raise
         
 
@@ -358,14 +386,48 @@ def order_str(kraken, string):
         t = kraken.query_private('AddOrder',arg)
         print(t)
     except Exception as exc:
-        print(exc)
+        logging.error(exc)
         raise
     except:
-        print("No connection")
+        logging.error("No connection")
         raise
 
     if (len(t['error'])):
-        print("API error occured",t['error'])
+        logging.error("API error occured",t['error'])
         raise Exception("API error")
 
+
+def depth_format(result,pair):
+    """
+    Display the table of depth
+
+    result -- result of public query of depth : depth['result']
+    pair -- currency pair 
+
+    """
+    wc = 16 #width of each column
+
+    table = "Order Book {}/{}\n\n".format(pair[1:4],pair[5:])
+
+    fmttitle='{:^%i}  {:^%i}\n'%(3*wc+5,3*wc+5)
+    table+=fmttitle.format('Buying','Selling')
+
+    #table entries formatting
+    fmtt='{0:1}{5:^%i}{0:1}{1:^%i}{0:1}{2:^%i}{0:1}  {0:1}{3:^%i}{0:1}{4:^%i}{0:1}{6:^%i}{0:1}\n'%(wc+4,wc,wc,wc,wc,wc+4)
+    hline=fmtt.format('+','-'*wc,'-'*wc,'-'*wc,'-'*wc,'-'*(wc+4),'-'*(wc+4))
+
+    table += hline
+    table += fmtt.format('|','Volume','Price','Price','Volume','Cum. Vol','Cum. Vol')
+    table += hline
+
+    curr1 = pair[1:4]
+    c_ask,c_bid = 0,0 #cumulative values
+    for bid,ask in zip(result[pair]['bids'],result[pair]['asks']):
+        c_bid += float(bid[1])
+        c_ask += float(ask[1])
+        table += fmtt.format('|',bid[1],bid[0],ask[0],ask[1],_rou(c_bid,curr1),_rou(c_ask,curr1))
+
+    table+=hline
+
+    return table
 

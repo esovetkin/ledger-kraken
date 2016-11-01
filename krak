@@ -1,0 +1,238 @@
+#!/usr/bin/env python3
+
+# This is part of kraken-tools
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+import sys
+
+from configparser import ConfigParser
+
+from argparse import ArgumentParser
+
+from kraken import Kraken, KrakenData
+
+from functions import depth_format
+
+import threading
+from multiprocessing import Pool
+
+import os 
+
+import logging
+
+def _getconfig(conff=os.path.expanduser('~/.krak/conf')):
+    """
+    Set the configuration. If it specify in configuration file, then
+    override the default values.
+
+    Keyword arguments :
+    conff -- configuration file location
+    """
+
+    # the configuration with its default values
+    conf = { 'personal': {
+                'key' : "~/.krak/mykey.key",
+                'logfile' : ""
+                },
+             'logger': {
+                 'db' : '~/.krak/data.db'
+             },
+             'ledger' : {
+                 'filename_ledger' : "~/.krak/ledger_kraken.log",
+                 'filename_timestamp' : "~/.krak/timestamp",
+                 'account_fee' : "Expenses:Taxes:Kraken",
+                 'account':"Assets:Kraken"
+                 },
+             'query' : {
+                'timeout' : 5
+             },
+             'other' : {
+                 'logfile' : ''
+             }
+           }
+    
+    #read from configuration file
+    config = ConfigParser()
+    config.read(conff)
+
+    #replace with the ones set in configuration file
+    for section in config.sections():
+        for keys,val in config[section].items():
+            conf[section][keys] = val
+
+    return conf
+
+
+def _depth(args):
+    """
+    Print order book for the corresponding pair. 
+    Public query, does not require key
+
+    Keyword arguments : 
+
+    :args.p: pair name
+    :args.n: number of entry displayed
+    """
+
+    k = Kraken()
+
+    arg = dict()
+
+    arg['pair'] = args.p
+    arg['count'] = args.n
+
+    depth = k.query_public('Depth',arg)
+
+    try:
+        print(depth_format(depth['result'],arg['pair']))
+    except:
+        logging.error(depth['error'])
+
+
+def _logger_helper(what, args):
+    """
+    Helper function for _logger
+
+    :what: either "depth" of "trades"
+    :args: same as args in _logger
+    """
+    kraken = KrakenData(db_path=args.db, key_path=args.key)
+    
+    if ("depth" == what):
+        while (True):
+            try:
+                kraken.sync_OrderBook()
+            except Exception as e:
+                logging.error("Exception during depth sync",e)
+        
+    if ("trades" == what):
+        try:
+            kraken.sync_RecentTrades()
+        except Exception as e:
+            logging.error("Exception during trades sync",e)
+
+            
+def _logger(args):
+    """
+    Fork a process to a background. 
+    Continuously record depth and trades.
+
+    Keyword arguments:
+
+    :args.db:      location of the database
+    :args.key:     location of the key
+    """
+
+    pool = Pool(processes = 2)
+
+    pool.starmap(_logger_helper, [("depth",args),("trades",args)])
+
+    pool.close()
+    pool.terminate()
+    pool.join()
+    
+def _orders():
+    """
+    Print orders : active, closed, all
+    """
+    k.load_key('keys/cica.key')
+
+    k = Kraken()
+
+    orders = k.query_private('OpenOrders')
+
+    orders = orders['result']['open']
+
+    t = [{'pair':orders[key]['descr']['pair'],\
+          'type':orders[key]['descr']['type'],\
+          'price':orders[key]['descr']['price'],\
+          'vol':orders[key]['vol'],\
+          'key':key,\
+          'status':orders[key]['status']} for key in orders.keys()]
+
+
+
+if __name__ == '__main__':
+    """
+    Kraken tools
+    """
+    # create dirs at home
+    os.makedirs(os.path.expanduser("~/.krak"), exist_ok=True)
+    
+    # configuration
+    conf = _getconfig()
+    
+    # top level parser \todo how to format epilog 
+    parser = ArgumentParser(prog='krak',description='Kraken tools',
+                            epilog=('''See also configuration file: ~/.krak/conf '''))    
+    parser.add_argument('--logfile',
+                        default=conf['other']['logfile'],
+                        type=str,
+                        help='Location of the log-file. Config default: ' + \
+                        "stdout" if ("" == conf['personal']['logfile']) else conf['personal']['logfile'] )
+
+
+    subparsers = parser.add_subparsers(help='Commands')
+
+    # parsers for subcommands and its options
+
+    # depth
+    p_depth = subparsers.add_parser('depth', help='Print order book')
+    p_depth.add_argument('-p', default='XXBTZEUR', type=str, help='Currency pair. Default: XXBTZEUR')
+    p_depth.add_argument('-n', default=30, type=int, help='Number of entry displayed. Default: 30')
+    p_depth.set_defaults(func=_depth)
+
+    # order
+    p_orders = subparsers.add_parser('order', help='Print private orders')
+
+    # logger
+    p_logger = subparsers.add_parser('logger',
+                                     help='Continuously log depth and trades in background')
+    p_logger.add_argument('--db',
+                          default=conf['logger']['db'],
+                          type=str,
+                          help='Location of the database. Config default: ' + conf['logger']['db'] )
+    p_logger.add_argument('--key',
+                          default=conf['personal']['key'],
+                          type=str,
+                          help='Location of the key to use. Config default: ' + conf['personal']['key'])
+    p_logger.set_defaults(func=_logger)
+
+    # print help in case no arguments
+    if len(sys.argv) == 1:
+        parser.print_help()
+        sys.exit(1)
+    
+    args = parser.parse_args()
+    
+    # set up logging
+    logfmt='%(asctime)s : %(filename)s : %(funcName)s : %(levelname)s : %(message)s'
+    
+    if ( "" != args.logfile ):
+        try:
+            logging.basicConfig(filename=os.path.expanduser(args.logfile),
+                                format=logfmt)
+        except FileNotFoundError as e:
+            print(e)
+            sys.exit(1)
+    else:
+        logging.basicConfig(stream=sys.stdout, format = logfmt)
+
+    # execute parameters
+    try:
+        args.func(args)
+    except Exception as e:
+        logging.error(e)
+        sys.exit(1)
