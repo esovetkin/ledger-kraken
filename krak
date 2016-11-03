@@ -145,13 +145,17 @@ def _logger(args):
     pool.terminate()
     pool.join()
     
-def _orders():
+def _order(args):
     """
-    Print orders : active, closed, all
-    """
-    k.load_key('keys/cica.key')
+    Print order : active, closed, all
 
+    Keyword arguments:
+
+    :args.key:  location of the key
+    """
     k = Kraken()
+    
+    k.load_key(os.path.expanduser(args.keys)) 
 
     orders = k.query_private('OpenOrders')
 
@@ -197,7 +201,15 @@ if __name__ == '__main__':
     p_depth.set_defaults(func=_depth)
 
     # order
-    p_orders = subparsers.add_parser('order', help='Print private orders')
+    p_order = subparsers.add_parser('order', help='Print private orders')
+    p_order.add_argument("--key",
+                          default=conf['personal']['key'],
+                          type=str,
+                          help='Location of the key to use. Default: ' + conf['personal']['key'])
+    p_order.add_argument("-s","--show",action='store_true', help="Print open orders")
+    p_order.add_argument("--put-order",default="",
+                          help="Set an order, e.g. --put-order \"buy 1 XBT @ 500 EUR\"")
+    #p_order.set_defaults(func=_order)
 
     # logger
     p_logger = subparsers.add_parser('logger',
