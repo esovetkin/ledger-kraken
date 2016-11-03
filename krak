@@ -183,13 +183,6 @@ if __name__ == '__main__':
     # top level parser \todo how to format epilog 
     parser = ArgumentParser(prog='krak',description='Kraken tools',
                             epilog=('''See also configuration file: ~/.krak/conf '''))    
-    parser.add_argument('--logfile',
-                        default=conf['other']['logfile'],
-                        type=str,
-                        help='Location of the log-file. Config default: ' + \
-                        "stdout" if ("" == conf['other']['logfile']) else conf['other']['logfile'] )
-
-
     subparsers = parser.add_subparsers(help='Commands')
 
     # parsers for subcommands and its options
@@ -222,8 +215,13 @@ if __name__ == '__main__':
                           default=conf['personal']['key'],
                           type=str,
                           help='Location of the key to use. Config default: ' + conf['personal']['key'])
+    p_logger.add_argument('--logfile',
+                          default=conf['other']['logfile'],
+                          type=str,
+                          help='Location of the log-file. Config default: ' + \
+                          "stdout" if ("" == conf['other']['logfile']) else conf['other']['logfile'] )
     p_logger.set_defaults(func=_logger)
-
+    
     # print help in case no arguments
     if len(sys.argv) == 1:
         parser.print_help()
