@@ -183,6 +183,8 @@ if __name__ == '__main__':
     # top level parser \todo how to format epilog 
     parser = ArgumentParser(prog='krak',description='Kraken tools',
                             epilog=('''See also configuration file: ~/.krak/conf '''))    
+    parser.add_argument("-v","--verbose",action="store_true", help="Verbose output")
+    
     subparsers = parser.add_subparsers(help='Commands')
 
     # parsers for subcommands and its options
@@ -234,13 +236,16 @@ if __name__ == '__main__':
     
     if ( "" != args.logfile ):
         try:
-            logging.basicConfig(filename=os.path.expanduser(args.logfile),
-                                format=logfmt, level = logging.DEBUG)
+            logging.basicConfig(filename=os.path.expanduser(args.logfile), format=logfmt)
         except FileNotFoundError as e:
             print(e)
             sys.exit(1)
     else:
-        logging.basicConfig(stream=sys.stdout, format = logfmt, level = logging.DEBUG)
+        logging.basicConfig(stream=sys.stdout, format = logfmt)
+
+    # set up logging level
+    if args.verbose:
+        logging.basicConfig(level=logging.DEBUG)
                 
     # execute parameters
     try:
