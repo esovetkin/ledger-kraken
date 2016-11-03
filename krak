@@ -193,6 +193,7 @@ if __name__ == '__main__':
     p_depth = subparsers.add_parser('depth', help='Print order book')
     p_depth.add_argument('-p', default='XXBTZEUR', type=str, help='Currency pair. Default: XXBTZEUR')
     p_depth.add_argument('-n', default=30, type=int, help='Number of entry displayed. Default: 30')
+    p_depth.add_argument("-l","--local",action='store_true', help="Use local database for query")
     p_depth.set_defaults(func=_depth)
 
     # order
@@ -204,6 +205,7 @@ if __name__ == '__main__':
     p_order.add_argument("-s","--show",action='store_true', help="Print open orders")
     p_order.add_argument("--put-order",default="",
                           help="Set an order, e.g. --put-order \"buy 1 XBT @ 500 EUR\"")
+    p_order.add_argument("-l","--local",action='store_true', help="Use local database for query")
     #p_order.set_defaults(func=_order)
 
     # logger
