@@ -191,7 +191,7 @@ if __name__ == '__main__':
 
     # depth
     p_depth = subparsers.add_parser('depth', help='Print order book')
-    p_depth.add_argument('-p', default='XXBTZEUR', type=str, help='Currency pair. Default: XXBTZEUR')
+    p_depth.add_argument('-p',"--pair", default='XXBTZEUR', type=str, help='Currency pair. Default: XXBTZEUR')
     p_depth.add_argument('-n', default=30, type=int, help='Number of entry displayed. Default: 30')
     p_depth.add_argument("-l","--local",action='store_true', help="Use local database for query")
     p_depth.set_defaults(func=_depth)
@@ -233,9 +233,10 @@ if __name__ == '__main__':
     
     args = parser.parse_args()
     
-    # set up logging
+    # set up logging format
     logfmt='%(asctime)s : %(filename)s : %(funcName)s : %(levelname)s : %(message)s'
-    
+
+    # set up logfile location
     if ( "" != args.logfile ):
         try:
             logging.basicConfig(filename=os.path.expanduser(args.logfile), format=logfmt)
