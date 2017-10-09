@@ -24,7 +24,7 @@ import os
 
 import sqlite3
 
-from math import ceil, isclose 
+from math import ceil, isclose
 
 from collections import defaultdict
 
@@ -34,10 +34,10 @@ class Kraken(krakenex.API):
     """A wrap for the krakekex with API call rate control
 
     """
-    
+
     def __init__(self, key = '', secret = '', conn = None, tier = 3, db_path = "/tmp/kraken_counter.db"):
         """Constructor for the child
-        
+
         The most important part of initialising a child class is to
         set the tier. Different tier level implies different API call
         rate, see
@@ -57,20 +57,20 @@ class Kraken(krakenex.API):
         super(Kraken, self).__init__(key = key, secret = secret, conn = conn)
 
         db_path = os.path.expanduser(db_path)
-        
+
         # set up a database for storing counter and counter_time
         self._dbconn = sqlite3.connect(db_path, timeout = 15, isolation_level="EXCLUSIVE")
-        
+
         # set tier level
         if (tier not in [2,3,4]):
             raise Exception("Wrong tier number")
-        
+
         self._tier = tier
-    
+
         # init database
         self._init_db()
 
-        
+
     def _init_db(self):
         """Create a database with a single table and a single row which
         contains information about the counter and the timestamp the
@@ -79,11 +79,11 @@ class Kraken(krakenex.API):
         The aim of the database is to take advatage of the sqlite lock
         system for interprocess communications.
         """
-        
+
         # try to create a table
         try:
             c = self._dbconn.execute('''BEGIN EXCLUSIVE''')
-                        
+
             # as a timestamp for the counter we use system time
             # (time.time()). Mostly, for other timestamps we use
             # kraken time. It might be an option to replace system
@@ -102,17 +102,17 @@ class Kraken(krakenex.API):
 
             # set the table wiith default values
             c.execute('''
-            INSERT OR IGNORE INTO counter 
+            INSERT OR IGNORE INTO counter
             (counter, time) VALUES
             (0, ?)''', (time.time(),))
 
             # commit changes in database
-            self._dbconn.commit()            
+            self._dbconn.commit()
         except Exception as e:
             logging.error("Error creating database (kraken counter)",e)
             self._dbconn.rollback()
-            raise e                    
-        
+            raise e
+
     def _query_cost(self, urlpath):
         """Determines cost of the urlpath query
 
@@ -130,13 +130,13 @@ class Kraken(krakenex.API):
             return 0
         else:
             return 1
-        
+
 
     def _if_blocked(self, counter_diff):
         """Determines whether call rate limit is too high
 
         The functions calls the database and updates its values
-        
+
         return True or False. True if call rate is too high
 
         """
@@ -146,20 +146,20 @@ class Kraken(krakenex.API):
 
             c.execute("SELECT counter, time FROM counter")
             counter, counter_time = c.fetchone()
-            
+
             # determine new counter: tier 2 users reduce count every 3
             # seconds, tier 3 users reduce count every 2 seconds, tier
             # 4 users reduce count every 1 second.
             counter -= (time.time() - counter_time)/(4-(self._tier-1))
-        
+
             # check if the counter is negative
             if (counter < 0):
                 counter = 0
-            
+
             # update value with the new query cost
             counter += counter_diff
             counter_time = time.time()
-            
+
             # write updated values
             c.execute('''
             UPDATE counter SET counter = ?, time = ?
@@ -172,29 +172,29 @@ class Kraken(krakenex.API):
             logging.error("Error db, while getting counter",e)
             self._dbconn.rollback()
             raise e
-            
+
         # determine if blocked
         if 2 == self._tier:
             return ceil(counter) >= 15
         elif 3 == self._tier or 4 == self._tier:
             return ceil(counter) >= 20
 
-        
+
     def _query(self, urlpath, req = {}, conn = None, headers = {}):
         """Redefinition of low-level query handling
 
         Arguments correspond to the parent function.
 
         """
-        
+
         # determine cost of the query and add up to the counter
         counter_diff = self._query_cost(urlpath)
-        
+
         while (self._if_blocked(counter_diff)):
             counter_diff = 0
             # wait a second
             time.sleep(1)
-            
+
         # call the parent function
         return super(Kraken, self)._query(urlpath = urlpath, req = req, \
                                           conn = conn, headers = headers)
@@ -222,18 +222,18 @@ class KrakenData(object):
         # init path for db and API keys
         self._db_path = os.path.expanduser(db_path)
         self._key_path = os.path.expanduser(key_path)
-        
+
         # init db connection
         self._dbconn = sqlite3.connect(self._db_path, timeout = 60)
-        
+
         # init kraken connection
         self._kraken = Kraken(tier = tier)
         self._kraken.load_key(self._key_path)
 
         # init database
         self._init_db()
-        
-        
+
+
     def _get_pairs(self):
         """Get tradable pairs
 
@@ -266,7 +266,7 @@ class KrakenData(object):
 
             if (len(t['error'])):
                 raise Exception("API error", t['error'])
-            
+
             t = t['result']
         except Exception as e:
             logging.error("Error during API call: AssetsPairs", e)
@@ -305,10 +305,10 @@ class KrakenData(object):
         # commit changes
         self._dbconn.commit()
 
-        
+
     def _init_db(self, path = os.path.dirname(os.path.realpath(__file__)) + "/createdb.sql"):
         """Initialising db by running a given sql-script
-        
+
         path --- path to the script
         return --- nothing
         """
@@ -337,10 +337,10 @@ class KrakenData(object):
 
         self._dbconn.commit()
 
-        
+
     def _get_ServerTime(self):
         """Get Kraken server time
-        
+
         return --- float (actually, integer)
 
         """
@@ -350,7 +350,7 @@ class KrakenData(object):
 
             if (len(t['error'])):
                 raise Exception("API error", t['error'])
-            
+
             t = t['result']
         except Exception as e:
             logging.error("Error during API call: Time", e)
@@ -358,7 +358,7 @@ class KrakenData(object):
 
         return t['unixtime']
 
-    
+
     def _getTimeStamp(self, name):
         """Query timestamp name from the "timestamps" table
 
@@ -367,7 +367,7 @@ class KrakenData(object):
         return --- float. "0" in case of absense of record
 
         """
-        
+
         c = self._dbconn.cursor()
 
         # try to query timestamp
@@ -379,17 +379,17 @@ class KrakenData(object):
             logging.warning("Assuming timestamp is zero")
             return 0
 
-        
+
     def _setTimeStamp(self, name, time):
         """Set a timestamp in the "timestamps" table
-        
+
         name --- string of the timestamp name
         time --- new timestamp value
 
         return --- nothing
 
         """
-        
+
         c = self._dbconn.cursor()
 
         # try to insert in timestamp
@@ -436,40 +436,40 @@ class KrakenData(object):
         # commit changes in database
         self._dbconn.commit()
 
-        
+
     def _insert_to_OrderBook(self, new_data, timestamp):
         """Inserts to a database a given orderbook
-        
-        new_data --- a new entries orderbook 
+
+        new_data --- a new entries orderbook
         timestamp --- a list of timestamps of the orderbook download time
 
         """
-        
+
         c = self._dbconn.cursor()
-        
+
         # convert data to a list
         orderbook_list = []
         for pair, pairValue in new_data.items():
             for askbid, askbidValue in pairValue.items():
-                for item in askbidValue:                
+                for item in askbidValue:
                     orderbook_list.append((item[0], item[2], timestamp[pair], askbid, item[1], pair))
 
-        try: 
+        try:
             # add orders
             c.executemany('''
-            INSERT OR REPLACE INTO orderBook 
+            INSERT OR REPLACE INTO orderBook
             (price, time, time_l, type, volume, pair_id) VALUES
             (?,?,?,?,?,
             (SELECT id from pairs WHERE name = ?))
             ''', orderbook_list)
-        
+
         except Exception as e:
             logging.error("Error with db insertion to ordersBook",e)
             self._dbconn.rollback()
             raise e
 
         # commit changes in database
-        self._dbconn.commit()            
+        self._dbconn.commit()
 
     def _select_from_OrderBook(self, time, pair):
         """Query to orderbook status at a given time
@@ -548,17 +548,17 @@ class KrakenData(object):
             logging.error("Error with db insertion to ordersPrivate",e)
             self._dbconn.rollback()
             raise e
-        
+
         # update timestamp
         self._setTimeStamp("OrdersPrivate", time)
-        
+
         # commit changes in database
-        self._dbconn.commit()            
+        self._dbconn.commit()
 
 
     def _insert_to_TradesPrivate(self, new_data, time):
         """Insert new private trades to the database
-        
+
         new_data --- new data with orders
         time --- time the trades has been fetched (Kraken time)
 
@@ -579,7 +579,7 @@ class KrakenData(object):
                                v.get('cfee'),v.get('cvol'),v.get('cmargin'),
                                v.get('net'),v.get('trades'),
                                v.get('orderxid'),v.get('pair')))
-                              
+
         try:
             c.executemany('''
             INSERT INTO tradesPrivate
@@ -639,7 +639,7 @@ class KrakenData(object):
 
         # commit changes in database
         self._dbconn.commit()
-        
+
 
     def sync_RecentTrades(self, pairs = None):
         """Download recent trades data
@@ -660,28 +660,28 @@ class KrakenData(object):
         # get pairs list
         if pairs is None:
             pairs = self._get_pairs()
-        
+
         for pair in pairs:
             arg = {"pair":pair, "since": self._getTimeStamp("RecentTrades-" + pair)}
-            
+
             # try API call
             try:
                 t = self._kraken.query_public("Trades", arg)
-                
+
                 if (len(t['error'])):
                     raise Exception("API error", t['error'])
-                
+
                 t = t['result']
             except Exception as e:
                 logging.error("Error during API call: Depth for ", pair, e)
                 logging.warning("Skipping pair:", pair)
                 continue
-                
+
             # new_data and timestamps are appended only in case
             # successful query
             new_data[pair] = t[pair]
             timestamps[pair] = t['last']
-        
+
         # insert data to a databaase
         self._insert_to_Trades(new_data)
 
@@ -692,22 +692,22 @@ class KrakenData(object):
         for pair,time in timestamps.items():
             self._setTimeStamp("RecentTrades-" + pair, time)
 
-            
+
     def sync_OrderBook(self, pairs = None, count = 500):
         """Download new order book for pairs given in self._pairs
 
         count --- number of entries in the order book to query 500
         (apparently current maximum for kraken is 500)
-        
+
         pairs --- a tradable pairs name
 
         """
 
         new_data = {}
-        
+
         # server time
         time.server = self._get_ServerTime()
-        
+
         # local time. This is used for a more accurate estimates of
         # the orderBook timestamp
         time.local = time.time()
@@ -718,29 +718,29 @@ class KrakenData(object):
         # get pairs list
         if pairs is None:
             pairs = self._get_pairs()
-        
+
         for pair in pairs:
             arg = {'pair': pair, 'count': count}
 
             # try API call
             try:
                 t = self._kraken.query_public("Depth", arg)
-            
+
                 if (len(t['error'])):
                     raise Exception("API error", t['error'])
-            
+
                 t = t['result']
             except Exception as e:
                 logging.error("Error during API call: Depth for ", pair, e)
                 logging.warning("Skipping pair:", pair)
                 continue
-                
+
             new_data[pair] = t[pair]
             timestamp[pair] = time.server + int(time.time() - time.local)
-            
+
         self._insert_to_OrderBook(new_data,timestamp)
 
-        
+
     def _sync_OrdersPrivate(self):
         """Download open and closed orders and add them to the database
 
@@ -750,32 +750,32 @@ class KrakenData(object):
 
         new_data = {}
         time = self._get_ServerTime()
-        
+
         # try API call
         try:
             # query OpenOrders
             t = self._kraken.query_private("OpenOrders")
-            
+
             if (len(t['error'])):
                 raise Exception("API error", t['error'])
 
             # update dictionary with orders
-            new_data.update(t['result']['open'])                
+            new_data.update(t['result']['open'])
         except Exception as e:
             print("Error during API call: OpenOrders", e)
             raise e
 
         print(new_data)
-        
+
         # determine time period for the closed order to query
         arg = {'start': self._getTimeStamp("OrdersPrivate"), 'end': time}
-        
+
         # latest entry time (indicates the end of the queries)
         latest_entry_time = arg['start']
-        
+
         # query closedOrders
         while True:
-            
+
             try:
                 # query ClosedOrders
                 t = self._kraken.query_private("ClosedOrders", arg)
@@ -793,14 +793,14 @@ class KrakenData(object):
             # obtain time of the latest oldest entry
             arg['start'] = max([t['result']['closed'][key]['closetm']
                               for key in t['result']['closed'].keys()])
-            
+
             if (isclose(arg['start'],latest_entry_time)):
                 break
             else:
                 latest_entry_time = arg['start']
 
         print(new_data)
-                
+
         # update database
         self._insert_to_OrdersPrivate(new_data, time)
 
