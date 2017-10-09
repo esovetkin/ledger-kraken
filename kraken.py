@@ -471,6 +471,42 @@ class KrakenData(object):
         # commit changes in database
         self._dbconn.commit()            
 
+    def _select_from_OrderBook(self, time, pair):
+        """Query to orderbook status at a given time
+
+        time --- query time
+
+        pair --- trading pair that for which order book is queried
+
+        """
+
+        c = self._dbconn.cursor()
+
+        # get pair id
+        try:
+            c.execute('SELECT id from pairs where name = ?', (str(pair),))
+            pair_id = c.fetchone()[0]
+        except Exception as e:
+            logging.error("Error quering pair id",e)
+            self._dbconn.rollback()
+            raise e
+
+        try:
+            # query orderbook
+            c.execute('''
+            SELECT price, volume, type, time, time_l from orderBook
+            WHERE pair_id = ? AND time < ? AND time_l > ?
+            ''', (pair_id,time,time))
+            query_res=c.fetchall()
+        except Exception as e:
+            logging.error("Error quering data from orderBook",e)
+            self._dbconn.rollback()
+            raise e
+
+        # commit changes in database
+        self._dbconn.commit()
+
+        return(query_res)
 
     def _insert_to_OrdersPrivate(self, new_data, time):
         """Insert new orders to the database
