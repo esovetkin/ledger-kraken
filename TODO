@@ -47,3 +47,10 @@
 * models to try and compare: SVM classifier, SVM regression, random
   forest, neural networks, basic logistic regression
 
+* figure out what needs to be done to support something more advanced
+  than sqlite. All queries to insert/select/create data should work on
+  any database. One just need to figure out how to allow to use
+  several database API.
+
+  MariaDB should be faster for recalculating indices on insert, etc,
+  than sqlite
