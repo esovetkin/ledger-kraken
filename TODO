@@ -34,6 +34,9 @@
   interuptions, so we need to get precise time, when logs were
   made. This will give us clear orderBook data.
 
+  This can be done with time_l of orderBook. I checked, it works as
+  suppose. I'll write function later
+
 * function to get orderBook + price change in SVM friendly
   format. I'll run SVM to run on cluster. The SVM friendly means:
 
