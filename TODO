@@ -30,13 +30,6 @@
   kraken.com/help/api. Maybe I can play around with some connection
   parameters.
 
-* function to get orderBook + price change in SVM friendly
-  format. I'll run SVM to run on cluster. The SVM friendly means:
-
-  (a,b,p), where a,b \in R^d are vectors of asks and bids and given
-  fixed steps away from the market price and p is the current market
-  price.
-
 * models to try and compare: SVM classifier, SVM regression, random
   forest, neural networks, basic logistic regression
 

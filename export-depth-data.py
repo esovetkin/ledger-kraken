@@ -2,6 +2,7 @@
 
 from kraken import Kraken, KrakenData
 import numpy as np
+import json
 
 kraken = KrakenData(db_path="data/data.db",key_path="keys/albus.key")
 
@@ -46,5 +47,73 @@ def get_time_points(observe_each = 180, max_gap = 1000):
 
     return res
 
+def process_orderbook(data, price_interval = 0.05, len_bids_asks = 20):
+    """Process the query result and produce vectors of fixed lengths of
+    asks and bids volumes around an interval of the market price, and
+    the current market price
 
-res = get_time_points()
+    data --- result of _select_from_OrderBook method
+
+    price_interval --- percentage around the current market price to
+    consider the orderBook
+
+    len_bids_asks --- lengths of asks and bids output vectors
+
+    """
+    # get asks and bids from queried data
+    asks = sorted(filter(lambda x: x[2] == "asks", data),key=lambda x: x[0])
+    bids = sorted(filter(lambda x: x[2] == "bids", data),key=lambda x: -x[0])
+
+    # get market price (average between largest bids and smallest asks)
+    market_price=(max([float(x[0]) for x in bids]) + min([float(x[0]) for x in asks]))/2
+
+    # calculate accumulated volume and corresponding price
+    volume = list(np.cumsum([float(x[1]) for x in bids]))[::-1] + list(np.cumsum([float(x[1]) for x in asks]))
+    price = list([float(x[0]) for x in bids])[::-1] + list([float(x[0]) for x in asks])
+
+    res=[]
+    # price points at which we evaluate volume
+    for p in np.linspace((1-price_interval)*market_price,
+                         (1+price_interval)*market_price,
+                         len_bids_asks):
+        # get index inside price vector
+        try:
+            i = list(filter(lambda i: price[i] <= p and price[i+1] > p,
+                            range(1,len(price)-1)))[0]
+        except IndexError as e:
+            if p < market_price:
+                i = 0
+            if p > market_price:
+                i = -1
+
+        # if bid take right things
+        if p <= market_price:
+            res+=[volume[i+1]]
+
+        if p > market_price:
+            res+=[volume[i]]
+
+    return (res,market_price)
+
+def get_orderBook_data(price_interval = 0.05, len_bids_asks = 20):
+    """Query order book data for all available
+
+    price_interval --- percentage around the current market price to
+    consider the orderBook
+
+    len_bids_asks --- lengths of asks and bids output vectors
+
+    """
+    time_points = get_time_points()
+
+    res=[]
+    for time in time_points:
+        print("Time: " + str(time))
+        query = kraken._select_from_OrderBook(time,pair="XXBTZEUR")
+        res += [process_orderbook(query,price_interval,len_bids_asks)]
+
+
+    print("Saving results")
+    with open("orderBook.json",'w') as ofile:
+        json.dump(res, ofile)
+
