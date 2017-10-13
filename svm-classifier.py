@@ -3,7 +3,10 @@
 import numpy as np
 from sklearn import svm
 from sklearn.model_selection import KFold, cross_val_score
+from sklearn.model_selection import StratifiedKFold
 import json
+from sklearn import preprocessing
+
 
 def get_classes(data, T, rho):
     """Get classes for classification from the market price changes. Class
@@ -52,18 +55,27 @@ def get_features(data, T=1, standardise=True):
     """
     orders= [x[0] for x in data]
 
-    #orders = [list(np.array(x)/max(x)) for x in orders]
+    #orders = [list(np.array(x)/sum(x)) for x in orders]
 
     return orders
 
 with open("./orderBook.json") as x:
     data = json.load(x)
 
-Y = get_classes(data,5,0.0042/2)
+Y = get_classes(data,3,0.0042/3)
 X = get_features(data)
 
 X = X[40000:len(Y)]
 Y = Y[40000:len(Y)]
+
+X = [x[6:15] for x in X]
+
+#X = [list(np.array(x)/sum(x)) for x in X]
+
+# just put noise
+#X = np.random.randn(len(X),8)
+
+X = preprocessing.scale(X)
 
 print(X[1:10])
 print(Y[1:10])
@@ -82,8 +94,10 @@ svc = svm.SVC(C=1.0,cache_size=5000,kernel='rbf', gamma='auto',
 
 print("do cv...")
 
-k_fold = KFold(n_splits=3)
+k_fold = KFold(n_splits=2)
 
-score = cross_val_score(svc, X, Y, cv=k_fold, n_jobs=-1)
+skf = StratifiedKFold(n_splits=2)
+
+score = cross_val_score(svc, X, Y, cv=skf, n_jobs=-1)
     
 print(score)
