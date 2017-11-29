@@ -59,29 +59,30 @@ def get_features(data, T=1, standardise=True):
 
     return orders
 
-with open("./orderBook.json") as x:
+with open("orderBook_0.1_400.json") as x:
     data = json.load(x)
 
-Y = get_classes(data,3,0.0042/3)
+Y = get_classes(data,5,0.0042/2)
 X = get_features(data)
 
 X = X[40000:len(Y)]
 Y = Y[40000:len(Y)]
 
-X = [x[6:15] for x in X]
+X = [x[(len(x)/2 - 2):(len(x)/2 + 3)] for x in X]
 
 #X = [list(np.array(x)/sum(x)) for x in X]
 
 # just put noise
-#X = np.random.randn(len(X),8)
+X = np.random.randn(len(X),5)
 
-X = preprocessing.scale(X)
+#X = preprocessing.scale(X)
 
 print(X[1:10])
 print(Y[1:10])
 
 #weights = {1: sum(Y == 1)/len(Y), -1: sum(Y == -1)/len(Y), 0: sum(Y == 0)/len(Y)}
 weights = {1: len(Y)/sum(Y == 1), -1: len(Y)/sum(Y == -1), 0: len(Y)/sum(Y == 0)}
+#weights = {1: (1-sum(Y == 1)/len(Y)), -1: (1-sum(Y == -1)/len(Y)), 0: (1-sum(Y == 0)/len(Y))}
 
 print(weights)
 
@@ -96,7 +97,7 @@ print("do cv...")
 
 k_fold = KFold(n_splits=2)
 
-skf = StratifiedKFold(n_splits=2)
+skf = StratifiedKFold(n_splits=3)
 
 score = cross_val_score(svc, X, Y, cv=skf, n_jobs=-1)
     

@@ -64,6 +64,9 @@ def process_orderbook(data, price_interval = 0.05, len_bids_asks = 20):
     asks = sorted(filter(lambda x: x[2] == "asks", data),key=lambda x: x[0])
     bids = sorted(filter(lambda x: x[2] == "bids", data),key=lambda x: -x[0])
 
+    if 0 == len(asks) or 0 == len(bids):
+        return []
+
     # get market price (average between largest bids and smallest asks)
     market_price=(max([float(x[0]) for x in bids]) + min([float(x[0]) for x in asks]))/2
 
@@ -95,7 +98,7 @@ def process_orderbook(data, price_interval = 0.05, len_bids_asks = 20):
 
     return (res,market_price)
 
-def get_orderBook_data(price_interval = 0.05, len_bids_asks = 20):
+def get_orderBook_data(price_interval = 0.1, len_bids_asks = 400):
     """Query order book data for all available
 
     price_interval --- percentage around the current market price to
@@ -106,6 +109,10 @@ def get_orderBook_data(price_interval = 0.05, len_bids_asks = 20):
     """
     time_points = get_time_points()
 
+    time_points = list(filter(lambda x: x < 1486119006, time_points))
+
+    print("length of time_points: " + str(len(time_points)))
+
     res=[]
     for time in time_points:
         print("Time: " + str(time))
@@ -114,6 +121,6 @@ def get_orderBook_data(price_interval = 0.05, len_bids_asks = 20):
 
 
     print("Saving results")
-    with open("orderBook.json",'w') as ofile:
+    with open("orderBook_0.1_400.json",'w') as ofile:
         json.dump(res, ofile)
 
