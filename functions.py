@@ -68,7 +68,7 @@ def query_all_entries(kraken, query, keyname, start, end, timeout=5):
     about 'call counter'
 
     Note, this function is supposed to be used only once in a life.
-    
+
     kraken --- krakenex API
     query  --- query name of the API
     keyname --- keyname in the resulting dictionary
@@ -78,7 +78,7 @@ def query_all_entries(kraken, query, keyname, start, end, timeout=5):
 
     return --- dictionary
     """
-    
+
     # dictionary with extra parameters to the query
     arg={'start': start, 'end': end}
 
@@ -87,7 +87,7 @@ def query_all_entries(kraken, query, keyname, start, end, timeout=5):
 
     # in this variable is stored the time of the latest
     latest_entry_time = arg['end']
-    
+
     while (True):
 
         try:
@@ -103,7 +103,7 @@ def query_all_entries(kraken, query, keyname, start, end, timeout=5):
             # sleep
             time.sleep(timeout)
             continue
-    
+
         # count number of items. Break the loop if no more entries
         # left
         if (len(t['result'][keyname]) == 0):
@@ -112,21 +112,21 @@ def query_all_entries(kraken, query, keyname, start, end, timeout=5):
         # obtain the time of the latest oldest
         arg['end'] = min([t['result'][keyname][key]['time']
                           for key in t['result'][keyname].keys()])
-        
+
         # the condition will be satisfied if no new data is fetched
         if (isclose(arg['end'],latest_entry_time)):
             break
         else:
             latest_entry_time = arg['end']
-        
+
         # update dictionary
         data.update(t['result'][keyname])
 
         # some debug info
         print("start: ", arg['start'])
         print("end: ", arg['end'])
-        print("number of entries: ", len(t['result'][keyname]))        
-        
+        print("number of entries: ", len(t['result'][keyname]))
+
         # timeout for kraken api
         time.sleep(timeout)
 
@@ -162,7 +162,7 @@ def search_fields(data,name,what=str,try_to_return=False):
 def time2date(t):
     """
     Convert time to ledger date format
-    
+
     time   --- time in seconds since epoch
     entry_type --- is it trade or ledger
 
@@ -173,7 +173,7 @@ def time2date(t):
 
 def reformat(trades, entry_type):
     """
-    Reformat raw data from query to human readable format. 
+    Reformat raw data from query to human readable format.
 
     trades --- dict with trades/ledger data
 
@@ -191,10 +191,10 @@ def reformat(trades, entry_type):
 
 def _rou(value, currency):
     """
-    Round up for printing ledger, such that it will fit to double entry 
+    Round up for printing ledger, such that it will fit to double entry
 
     value -- the volume of currency
-    currency -- the corresponding currency 
+    currency -- the corresponding currency
     """
     prec_list = {'XBT' : 3,
                  'EUR' : 3,
@@ -204,7 +204,7 @@ def _rou(value, currency):
 
     fmt = "{:.%if}"%prec_list[currency] if currency in prec_list else "{:.9f}"
 
-    return fmt.format(value) 
+    return fmt.format(value)
 
 
 
@@ -214,25 +214,25 @@ def trade2ledger(entry, account_fee, account):
 
     entry --- list of length 2
     result --- string in ledger format
-    """    
+    """
     # currency
     curr0 = entry[0]['asset'][1:]
     curr1 = entry[1]['asset'][1:]
 
     # cost including fees
-    cost0 = _rou(float(entry[0]['amount']) - float(entry[0]['fee']),curr0)    
+    cost0 = _rou(float(entry[0]['amount']) - float(entry[0]['fee']),curr0)
     cost1 = _rou(float(entry[1]['amount']) - float(entry[1]['fee']),curr1)
-    
+
     price0 = "{:<7} {} {}".format(("BUY AT" if float(entry[0]['amount']) > 0 else "SELL AT" ),
                                       abs(float(entry[0]['amount'])/float(entry[1]['amount'])),
-                                      entry[0]['asset'] + entry[1]['asset']) 
+                                      entry[0]['asset'] + entry[1]['asset'])
     price1 = "{:<7} {} {}".format(("BUY AT" if float(entry[1]['amount']) > 0 else "SELL AT" ),
                                       abs(float(entry[1]['amount'])/float(entry[0]['amount'])),
-                                      entry[1]['asset'] + entry[0]['asset']) 
-    
+                                      entry[1]['asset'] + entry[0]['asset'])
 
-    
-    
+
+
+
     # date
     date = time2date(entry[0]['time'])
 
@@ -243,7 +243,7 @@ def trade2ledger(entry, account_fee, account):
     indent=' '*4
     fmt_fee = indent+'{:<26}{:>22} {:3}\n'
     fmt=indent+'{:<26}{:>22} {:3} ; {}\n'
-    
+
     res ='{} Trade id: {}\n'.format(date,id)
 
     res+=fmt_fee.format(account_fee,_rou(float(entry[0]['fee']),curr0),curr0)
@@ -257,7 +257,7 @@ def trade2ledger(entry, account_fee, account):
 
 def deposit2ledger(entry, account_fee, account):
     """Convert deposit/withdrawal/transfer to a ledger format
-    
+
     entry --- list of length 1
     result --- string in ledger format
     """
@@ -279,14 +279,14 @@ def deposit2ledger(entry, account_fee, account):
     #pretty printing
     indent=' '*4
     fmt=indent+'{:<26}{:>22} {:3}\n'
-    
+
     res ='{} {}\n'.format(date,id)
     res+=fmt.format(account_fee,_rou(float(entry[0]['fee']),curr),curr)
     res+=fmt.format(account,cost,curr)
     res+=fmt.format(account2,'','')
 
     return res
-    
+
 
 def convert2ledger(ledger, account_fee, account):
     """Converts ledger entries to a double entry in the format of ledger
@@ -295,14 +295,14 @@ def convert2ledger(ledger, account_fee, account):
     account_fee --- name for the fee account in ledger
     account --- name for the kraken account in ledger
 
-    return --- list of character in ledger format 
+    return --- list of character in ledger format
     """
     # get unique trade ids
     ids = list(set([x['refid'] for x in ledger]))
 
     # resulting list of strings. each entry is one entry in ledger
     res = list('\n')
-        
+
     for id in ids:
         # get list of trades corresponding to the id
         entry = [x for x in ledger if x['refid'] == id]
@@ -312,7 +312,7 @@ def convert2ledger(ledger, account_fee, account):
             if (entry[0]['type'] != 'trade') | (entry[1]['type'] != 'trade'):
                 print("ledger entries are not trade")
                 sys.exit()
-            
+
             res.append(trade2ledger(entry, account_fee, account))
 
         # case of withdrawal/transfer/funding
@@ -320,7 +320,7 @@ def convert2ledger(ledger, account_fee, account):
             if (entry[0]['type'] == 'trade'):
                 print("lonely trade")
                 continue
-                
+
             res.append(deposit2ledger(entry, account_fee, account))
 
         # in case some error in ledger
@@ -330,12 +330,12 @@ def convert2ledger(ledger, account_fee, account):
             print("unknown transaction")
             sys.exit()
 
-    return res    
+    return res
 
 
 def save_timestamp(ledger, filename):
     """Save the time of the latest trade in file
-    
+
     ledger --- downloaded ledger data
     filename --- filename of the timestamp
     return --- nothing
@@ -358,10 +358,9 @@ def read_timestamp(filename):
     except:
         return 1
 
-        
 def sync(kraken, ftimestamp, fledger, timeout, account_fee, account):
     """Synchronise ledger data
-    
+
     ftimestamp --- filename where the timestamp is
     fledger --- filename of the ledger file
     timeout --- timeout between transactions
@@ -373,7 +372,7 @@ def sync(kraken, ftimestamp, fledger, timeout, account_fee, account):
 
     # query new entries
     data = query_all_entries(kraken,'Ledgers','ledger',start,end,timeout)
-    
+
     # convert to ledger format
     ledger = convert2ledger(reformat(data, entry_type="ledger"), account_fee, account)
 
@@ -388,24 +387,24 @@ def sync(kraken, ftimestamp, fledger, timeout, account_fee, account):
 
 def str2krakenOrder(string):
     """Converts string with order to dictionary
-    
+
     In case it fails to convert an exception is called
 
     """
     string = string.split()
-    
+
     res = {'ordertype': 'limit'}
 
     # # debug
     # res['validate'] = 1
-    
+
     if (len(string) != 6):
         raise Exception("String contains incorrect number of words!")
 
     # check the first word
     if (string[0] != 'buy' and string[0] != 'sell'):
         raise Exception("Wrong order string!")
-    
+
     res['type'] = string[0]
 
     # set volume
@@ -413,23 +412,23 @@ def str2krakenOrder(string):
 
     # set price
     res['price'] = string[4]
-    
+
     # deal with currency pairs
     first = string[2]
     second = string[5]
 
     # TODO should be a parameter
     valid_currencies = ['EUR','USD','ETH','ETC','XBT','DAO','LTC','XDG','XLM','XRP']
-    
+
     # check if this are good names
     if (first not in valid_currencies) or (second not in valid_currencies):
         raise Exception("Invalid currencies")
 
     res['pair'] = first + second
-    
+
     return res
-    
-    
+
+
 def order_str(kraken, string):
     """Put a limit order to buy/sell
 
@@ -441,13 +440,13 @@ def order_str(kraken, string):
     """
 
     arg = {}
-    
+
     try:
         arg = str2krakenOrder(string)
     except Exception as exc:
         logging.error(exc)
         raise
-        
+
 
     try:
         # make a query to kraken
@@ -470,7 +469,7 @@ def depth_format(result,pair):
     Display the table of depth
 
     result -- result of public query of depth : depth['result']
-    pair -- currency pair 
+    pair -- currency pair
 
     """
     wc = 16 #width of each column
