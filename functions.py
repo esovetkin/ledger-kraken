@@ -90,6 +90,32 @@ def query_all_entries(kraken, query, keyname, start, end, timeout=5):
 
     return data
 
+def search_fields(data,name,what=str,try_to_return=False):
+    """Search nested lists and dicts
+
+    :data: nested lists and dicts
+    :name: name of the field
+    :what: type of the data to return
+    :try_to_return: if True try to exist recursion
+    :return: list of 'what' variables
+    """
+    if try_to_return and isinstance(data,what):
+        return [data]
+
+    res = []
+    if isinstance(data,list):
+        for x in data:
+            res += search_fields(data=x,
+                                 name=name,what=what,
+                                 try_to_return=False)
+
+    if isinstance(data,dict):
+        for key,item in data.items():
+            res += search_fields(data=item,
+                                 name=name,what=what,
+                                 try_to_return=(key == name))
+
+    return res
 
 def time2date(t):
     """

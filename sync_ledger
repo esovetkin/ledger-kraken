@@ -32,9 +32,6 @@ if __name__ == '__main__':
     # init krakenex API
     kraken = Kraken()
     kraken.load_key(filename_keys)
-    
-    # connection handler. \todo set timeout variable properly (depending on tier)
-    #conn = kraken.Connection("api.kraken.com",timeout=timeout)
-    
+        
     sync(kraken, filename_timestamp, filename_ledger, timeout,
          account_fee = account_fee, account = account)
