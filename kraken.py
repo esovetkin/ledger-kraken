@@ -35,7 +35,7 @@ class Kraken(krakenex.API):
 
     """
 
-    def __init__(self, key = '', secret = '', conn = None, tier = 3, db_path = "/tmp/kraken_counter.db"):
+    def __init__(self, key = '', secret = '', tier = 3, db_path = "/tmp/kraken_counter.db"):
         """Constructor for the child
 
         The most important part of initialising a child class is to
@@ -43,7 +43,7 @@ class Kraken(krakenex.API):
         rate, see
         <https://www.kraken.com/help/api#api-call-rate-limit>
 
-        key, secret, conn --- parameters for the krakenex.API constructor
+        key, secret --- parameters for the krakenex.API constructor
 
         tier --- kraken tier (possible values 2,3 or 4). Exception otherwise
 
@@ -54,7 +54,7 @@ class Kraken(krakenex.API):
         is not too high.
         """
         # call constructor of the parent
-        super(Kraken, self).__init__(key = key, secret = secret, conn = conn)
+        super(Kraken, self).__init__(key = key, secret = secret)
 
         db_path = os.path.expanduser(db_path)
 
@@ -180,7 +180,7 @@ class Kraken(krakenex.API):
             return ceil(counter) >= 20
 
 
-    def _query(self, urlpath, req = {}, conn = None, headers = {}):
+    def _query(self, urlpath, data, headers = None, timeout = None):
         """Redefinition of low-level query handling
 
         Arguments correspond to the parent function.
@@ -196,8 +196,8 @@ class Kraken(krakenex.API):
             time.sleep(1)
 
         # call the parent function
-        return super(Kraken, self)._query(urlpath = urlpath, req = req, \
-                                          conn = conn, headers = headers)
+        return super(Kraken, self)._query(urlpath = urlpath, data = data, \
+                                          headers = headers, timeout = timeout)
 
 
 class KrakenData(object):
