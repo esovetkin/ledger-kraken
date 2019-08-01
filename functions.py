@@ -17,6 +17,48 @@ from math import isclose
 
 import logging
 
+import re
+
+def query_tradable_pairs(kraken):
+    res = kraken.query_public('AssetPairs')
+
+    if len(res['error']):
+        raise RuntimeError("API error:" + res['error'])
+
+    return res['result']
+
+def query_ticker(kraken, pairs, ignore_dotd = True):
+    pairs = query_tradable_pairs(kraken)
+    pairs = list(pairs.keys())
+
+    if ignore_dotd:
+        r = re.compile('^.*\.d$')
+        pairs = [x for x in pairs if not r.match(x)]
+
+    args = {'pair':",".join(pairs)}
+    res=kraken.query_public('Ticker',args)
+
+    if len(res['error']):
+        raise RuntimeError("API error:" + res['error'])
+
+    return res['result']
+
+def price_matrix(ticker, pairs):
+    """Compute price matrix including the fees
+
+    """
+    res = {}
+
+    for key,item in ticker.items():
+        p = (pairs[key]['base'],pairs[key]['quote'])
+        q = (pairs[key]['quote'],pairs[key]['base'])
+        fp = pairs[key]['fees'][0][1]
+        fq = pairs[key]['fees_maker'][0][1]
+
+        res[p] = float(item['a'][0])*(1-fp/100)
+        res[q] = float(item['b'][0])*(1+fq/100)
+
+    return res
 
 def query_all_entries(kraken, query, keyname, start, end, timeout=5):
     """Query all entries present in kraken database
