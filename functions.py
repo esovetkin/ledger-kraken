@@ -1,23 +1,18 @@
 #!/bin/env python3
 
-# install: https://github.com/veox/python3-krakenex
-import krakenex
-
-# for storing downloaded data
-import json
-
-# for time and sleep
-import time
-
-import sys
-
-import sqlite3
-
 from math import isclose
-
+import json
+import krakenex
 import logging
-
 import re
+import sqlite3
+import sys
+import time
+import numpy as np
+
+from sklearn.cluster import KMeans
+
+import ipdb
 
 def query_tradable_pairs(kraken):
     res = kraken.query_public('AssetPairs')
@@ -27,14 +22,26 @@ def query_tradable_pairs(kraken):
 
     return res['result']
 
-def query_ticker(kraken, pairs, ignore_dotd = True):
-    pairs = query_tradable_pairs(kraken)
-    pairs = list(pairs.keys())
+def get_pairs_names(pairs, ignore_dotd = True):
+    """
+    :pairs: whatever query_tradable_pairs returns
+    :ignore_dotd: ignore pairs that end with '.d'
+    """
+    res = list(pairs.keys())
 
     if ignore_dotd:
         r = re.compile('^.*\.d$')
-        pairs = [x for x in pairs if not r.match(x)]
+        res = [x for x in res if not r.match(x)]
 
+    return res
+
+def query_ticker(kraken, pairs):
+    """Query ticker information
+
+    :kraken: Kraken object
+    :pairs: list of string, pair names
+
+    """
     args = {'pair':",".join(pairs)}
     res=kraken.query_public('Ticker',args)
 
@@ -43,22 +50,179 @@ def query_ticker(kraken, pairs, ignore_dotd = True):
 
     return res['result']
 
+def query_orderbook(kraken, pairs):
+    """Query order book information
+
+    :kraken: Kraken object
+    :pairs: list of string, pair names
+
+    """
+    res = {}
+    for pair in pairs:
+        args = {'pair':pair}
+        x = kraken.query_public('Depth',args)
+
+        if len(x['error']):
+            print("API error:" + res['error'])
+            continue
+
+        res[pair] = x['result']
+
+    return res
+
+def pair_name(key, pairs):
+    """
+    'XBTZEUR' -> ('XBT->ZEUR','ZEUR->XBT')
+    """
+    p = (pairs[key]['base'],pairs[key]['quote'])
+    q = (pairs[key]['quote'],pairs[key]['base'])
+
+    p = '->'.join(p)
+    q = '->'.join(q)
+
+    return (p,q)
+
+def pair_fees(key, pairs):
+    fp = pairs[key]['fees'][0][1]
+    fq = pairs[key]['fees_maker'][0][1]
+
+    return (fp/100,fq/100)
+
+def compute_price_for_volume(orderbook_entry, invert_volume = False):
+    """Convert order book entries to price for volumes
+
+    :orderbook_entry: list of tuples of 3
+    :invert_volume: wether all volumes -> 1/volumes
+    """
+    #ipdb.set_trace()
+    p = np.array([float(x[0]) for x in orderbook_entry])
+    v = np.array([float(x[1]) for x in orderbook_entry])
+
+    if invert_volume:
+        v = 1/v
+
+    cv = np.cumsum(v)
+    cp = np.cumsum(p*v)/cv
+
+    return np.array(list(zip(cp,cv)))
+
+def dict_price_volume_interval(pair_key,cpcv):
+    """
+    :pair_key: name of the pair
+    :cpcv: whatever compute_price_for_volume returns
+    :return: dictionary '<pair_key>#<v1><-><v2>': float
+    """
+    res = {}
+    for i in range(cpcv.shape[0]):
+        vl = cpcv[i,1]
+        vu = cpcv[i+1,1] if i+1 < cpcv.shape[0] else 'Inf'
+        key = pair_key+'#'+str(vl)+'<->'+str(vu)
+        res[key] = cpcv[i,0]
+
+    return res
+
 def price_matrix(ticker, pairs):
     """Compute price matrix including the fees
+
+    :orderbook: whatever query_orderbook returns
+    :pairs: whatever query_tradable_pairs returns
 
     """
     res = {}
 
     for key,item in ticker.items():
-        p = (pairs[key]['base'],pairs[key]['quote'])
-        q = (pairs[key]['quote'],pairs[key]['base'])
-        fp = pairs[key]['fees'][0][1]
-        fq = pairs[key]['fees_maker'][0][1]
+        p,q = pair_name(key,pairs)
+        fp,fq = pair_fees(key,pairs)
 
-        res[p] = float(item['a'][0])*(1-fp/100)
-        res[q] = float(item['b'][0])*(1+fq/100)
+        res[p] = float(item['a'][0])*(1-fp)
+        res[q] = 1/float(item['b'][0])*(1+fq)
 
     return res
+
+def depth_matrix(orderbook, pairs):
+    """Compute matrix prices with available volumes
+
+    :orderbook: whatever query_orderbook returns
+    :pairs: whatever query_tradable_pairs returns
+    :return: dict: 'str key'->float
+
+    """
+    res = {}
+
+    for key,item in orderbook.items():
+        p,q = pair_name(key,pairs)
+        fp,fq = pair_fees(key,pairs)
+
+        a = compute_price_for_volume(item[key]['asks'], False)
+        b = compute_price_for_volume(item[key]['bids'], True)
+        a[:,0] = a[:,0]*(1-fp)
+        b[:,0] = (1/b[:,0])*(1+fq)
+
+        res.update(dict_price_volume_interval(p,a))
+        res.update(dict_price_volume_interval(q,b))
+
+    return res
+
+def cluster_volumes(depth_matrix, number_clusters=100):
+    """Compute common volumes in depth_matrix
+
+    :depth_matrix: whatever depth_matrix returns
+    :number_clusters: number of clusters to combine the order volumes
+
+    """
+    r=re.compile('^.*->.*#(.*)<->(.*)$')
+
+    v = []
+    v += [float(r.sub(r'\1',x)) for x in depth_matrix.keys()]
+    v += [float(r.sub(r'\2',x)) for x in depth_matrix.keys()]
+    v = np.unique(sorted(v))
+    l = np.zeros(v.shape)
+
+    kmeans = KMeans(n_clusters = 100).fit(v[v!=float('inf')].reshape(-1,1))
+
+    l[v!=float('inf')] = kmeans.cluster_centers_[
+        kmeans.predict(v[v!=float('inf')].reshape(-1,1))][:,0]
+    l[v==float('inf')] = float('inf')
+
+    return {v[i]:l[i] for i in range(len(v))}
+
+def approximate_depth_matrix(depth_matrix):
+    """Reduce depth_matrix by making volumes common
+
+    :depth_matrix: whatever depth_matrix returns
+    :return: the same format as in depth_matrix
+
+    """
+    r=re.compile('^([A-Za-z]*)->.*#(.*)<->(.*)$')
+    curs=set([r.sub(r'\1',x) for x in depth_matrix.keys()])
+
+    res = {}
+
+    for cur in curs:
+        r=re.compile('^('+cur+'->.*)#(.*)<->(.*)$')
+        m = {x:depth_matrix[x]
+             for x in depth_matrix.keys() if r.match(x)}
+        common=cluster_volumes(m)
+
+        x = {}
+        for key,item in m.items():
+            k = r.sub(r'\1',key)+'#'+\
+                str(common[float(r.sub(r'\2',key))])+'<->'+\
+                str(common[float(r.sub(r'\3',key))])
+            if k not in x:
+                x[k]=[]
+            x[k]+=[item]
+
+        for key,item in x.items():
+            x[key]=np.mean(item)
+
+        res.update(x)
+
+    return res
+
+def save_json(fn,data):
+    with open(fn,'w') as f:
+        json.dump(data,f)
 
 def query_all_entries(kraken, query, keyname, start, end, timeout=5):
     """Query all entries present in kraken database
