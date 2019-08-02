@@ -216,6 +216,18 @@ def approximate_depth_matrix(depth_matrix):
         for key,item in x.items():
             x[key]=np.mean(item)
 
+        d = {}
+        for key,item in x.items():
+            if r.sub(r'\2',key) == r.sub(r'\3',key):
+                d[r.sub(r'\3',key)] = item
+
+        for key,item in x.items():
+            if r.sub(r'\2',key) in d:
+                x[key] = (item + d[r.sub(r'\2',key)])/2
+
+        x = {key:item for key,item in x.items()
+             if r.sub(r'\2',key) != r.sub(r'\3',key)}
+
         res.update(x)
 
     return res
