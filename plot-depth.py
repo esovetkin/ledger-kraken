@@ -8,7 +8,7 @@ import numpy as np
 
 kraken = KrakenData(db_path="data/data.db",key_path="keys/albus.key")
 
-def query_cumsum(depth_res):
+def query_cumsum(depth_res, interval=(0.8,1.2)):
     """Convert query result to the cumsum of bids and asks
 
     depth_res --- result of the query
@@ -31,8 +31,8 @@ def query_cumsum(depth_res):
     
     # plot only +/- 20% around the market price
     pr_vol = list(zip(price,volume))
-    volume=[v for p,v in pr_vol if p > 0.8*market_price and p < 1.2*market_price]
-    price=[p for p,v in pr_vol if p > 0.8*market_price and p < 1.2*market_price]
+    volume=[v for p,v in pr_vol if p > interval[0]*market_price and p < interval[1]*market_price]
+    price=[p for p,v in pr_vol if p > interval[0]*market_price and p < interval[1]*market_price]
     
     return (price, volume)
 
