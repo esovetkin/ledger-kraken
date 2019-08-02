@@ -115,6 +115,19 @@ def trades_pairs(fn):
 
     return res
 
+def transfers(fn):
+    t={key:item for key,item in trades(fn).items() if len(item) == 1}
+
+    res = {}
+    for key,item in t.items():
+        x = item[0]
+        if x['asset'] not in res:
+            res[x['asset']] = []
+
+        res[x['asset']] += [x]
+
+    return res
+
 def portfolio(fn):
     res = trades_pairs(fn)
     for key, item in res.items():
