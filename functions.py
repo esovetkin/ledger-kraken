@@ -88,23 +88,23 @@ def pair_fees(key, pairs):
 
     return (fp/100,fq/100)
 
-def compute_price_for_volume(orderbook_entry, invert_volume = False):
-    """Convert order book entries to price for volumes
+def orderbook_entry2array(orderbook_entry,invert_volume=False):
+    """Convert orderbook entry to np.array
 
     :orderbook_entry: list of tuples of 3
-    :invert_volume: wether all volumes -> 1/volumes
+    :invert_volume: if True invert volume
+    :return: 2d np.array
     """
-    #ipdb.set_trace()
-    p = np.array([float(x[0]) for x in orderbook_entry])
-    v = np.array([float(x[1]) for x in orderbook_entry])
+    if not isinstance(orderbook_entry,np.float):
+        orderbook_entry = np.array(orderbook_entry)
+
+    p = orderbook_entry[:,0]
+    v = orderbook_entry[:,1]
 
     if invert_volume:
         v = 1/v
 
-    cv = np.cumsum(v)
-    cp = np.cumsum(p*v)/cv
-
-    return np.array(list(zip(cp,cv)))
+    return np.array(list(zip(p,v)))
 
 def dict_price_volume_interval(pair_key,cpcv):
     """
@@ -153,8 +153,8 @@ def depth_matrix(orderbook, pairs):
         p,q = pair_name(key,pairs)
         fp,fq = pair_fees(key,pairs)
 
-        a = compute_price_for_volume(item[key]['asks'], False)
-        b = compute_price_for_volume(item[key]['bids'], True)
+        a = orderbook_entry2array(item[key]['asks'], False)
+        b = orderbook_entry2array(item[key]['bids'], True)
         a[:,0] = a[:,0]*(1-fp)
         b[:,0] = (1/b[:,0])*(1+fq)
 
@@ -162,6 +162,22 @@ def depth_matrix(orderbook, pairs):
         res.update(dict_price_volume_interval(q,b))
 
     return res
+
+def invert_volume(key):
+    """Invert volume of the depth_matrix
+
+    :key: valid key of the depth_matrix
+    """
+    r=re.compile('^(.*)->(.*)#(.*)<->(.*)$')
+
+    if not r.match(key):
+        return key
+
+    c1 = r.sub(r'\1',key)
+    c2 = r.sub(r'\2',key)
+    v1 = str(1/float(r.sub(r'\3',key)))
+    v2 = str(1/float(r.sub(r'\4',key)))
+    return c2+'->'+c1+'#'+v2+'<->'+v1
 
 def cluster_volumes(depth_matrix, number_clusters=100):
     """Compute common volumes in depth_matrix
@@ -199,9 +215,12 @@ def approximate_depth_matrix(depth_matrix):
     res = {}
 
     for cur in curs:
-        r=re.compile('^('+cur+'->.*)#(.*)<->(.*)$')
-        m = {x:depth_matrix[x]
+        r=re.compile('^(.*->'+cur+')#(.*)<->(.*)$')
+        m = {invert_volume(x):depth_matrix[x]
              for x in depth_matrix.keys() if r.match(x)}
+        r=re.compile('^('+cur+'->.*)#(.*)<->(.*)$')
+        m.update({x:depth_matrix[x]
+                  for x in depth_matrix.keys() if r.match(x)})
         common=cluster_volumes(m)
 
         x = {}
