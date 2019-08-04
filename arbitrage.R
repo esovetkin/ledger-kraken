@@ -15,67 +15,6 @@ read_depth_prices <- function(fn)
   return()
 }
 
-get_currencies <- function(prices)
-{
-  unique(c(gsub("^([A-Za-z]*)->([A-Za-z]*)#(.*)<->(.*)$","\\1#\\3<->\\4",names(prices)),
-           gsub("^([A-Za-z]*)->([A-Za-z]*)#(.*)<->(.*)$","\\2#\\3<->\\4",names(prices))))
-}
-
-
-exchange_constraints <- function(prices)
-{
-  curs <- get_currencies(prices)
-  A <- Matrix(0,ncol=length(names(prices)),nrow=length(curs))
-  rownames(A) <- curs
-  colnames(A) <- names(prices)
-
-  for (k in names(prices)) {
-    re <- "^([A-Za-z]*)->([A-Za-z]*)#(.*)<->(.*)$"
-    from <- gsub(re,"\\1",k)
-    to <- gsub(re,"\\2",k)
-    vl <- gsub(re,"\\3",k)
-    vu <- gsub(re,"\\4",k)
-
-    A[paste0(from,"#",vl,"<->",vu),k] = 1
-    A[paste0(to,"#",vl,"<->",vu),k] = -prices[k][[1]]
-  }
-
-  S <- rep("=",nrow(A))
-  RHS <- rep(0,nrow(A))
-
-  list("A"=A,"S"=S,"RHS"=RHS)
-}
-
-volume_constraints <- function(prices)
-{
-  rows <- paste0(c("L!","U!"),sort(rep(names(prices),2)))
-  A <- Matrix(0,ncol=length(names(prices)),nrow=length(rows))
-  rownames(A) <- rows
-  colnames(A) <- names(prices)
-
-  r <- "^([LU])!([A-Za-z]*->[A-Za-z]*#.*<->.*)$"
-
-  for (k in rownames(A)) {
-    A[k,gsub(r,"\\2",k)] <- 1
-  }
-
-  S <- character(nrow(A))
-  x <- gsub(r,"\\1",rownames(A))
-  S[x=="L"] <- "<="
-  S[x=="U"] <- ">="
-
-  r <- "^([LU])![A-Za-z]*->[A-Za-z]*#(.*)<->(.*)$"
-  RHS <- numeric(nrow(A))
-  x <- gsub(r,"\\1",rownames(A))
-  l <- as.numeric(gsub(r,"\\2",rownames(A)))
-  u <- as.numeric(gsub(r,"\\3",rownames(A)))
-  RHS[x=="L"] <- l[x=="L"]
-  RHS[x=="U"] <- u[x=="U"]
-
-  idx <- RHS!=Inf
-  list("A"=A[idx,],"S"=S[idx,],"RHS"=RHS[idx,])
-}
-
 read_ticker_prices <- function(fn)
 {
   data <- rjson::fromJSON(file=fn)
@@ -97,6 +36,74 @@ read_ticker_prices <- function(fn)
     data[x,x] <- 1
 }
 
+exchange_constraints <- function(prices, owncur="ZEUR")
+{
+  r <- "^([A-Za-z]*)->([A-Za-z]*)#(.*)<->(.*)$"
+  curs <- unique(c(gsub(r,"\\1#\\3<->\\4",names(prices))))
+  A <- Matrix(0,ncol=length(names(prices))+1,nrow=length(curs))
+  rownames(A) <- curs
+  colnames(A) <- c(names(prices),paste0(owncur,"->",owncur))
+
+  for (k in names(prices)) {
+    re <- "^([A-Za-z]*)->([A-Za-z]*)#(.*)<->(.*)$"
+    from <- gsub(re,"\\1",k)
+    to <- gsub(re,"\\2",k)
+    vl <- gsub(re,"\\3",k)
+    vu <- gsub(re,"\\4",k)
+
+    A[paste0(from,"#",vl,"<->",vu),k] = 1
+    A[paste0(to,"#",vl,"<->",vu),k] = -prices[k][[1]]
+  }
+
+  S <- rep("=",nrow(A))
+  RHS <- rep(0,nrow(A))
+
+  list("A"=A,"S"=S,"RHS"=RHS)
+}
+
+volume_constraints <- function(prices,owncur="ZEUR")
+{
+  rows <- paste0(c("L!","U!"),sort(rep(names(prices),2)))
+  A <- Matrix(0,ncol=length(names(prices))+1,nrow=length(rows))
+  rownames(A) <- rows
+  colnames(A) <- c(names(prices),paste0(owncur,"->",owncur))
+
+  r <- "^([LU])!([A-Za-z]*->[A-Za-z]*#.*<->.*)$"
+
+  for (k in rownames(A)) {
+    A[k,gsub(r,"\\2",k)] <- 1
+  }
+
+  S <- character(nrow(A))
+  x <- gsub(r,"\\1",rownames(A))
+  S[x=="L"] <- "<="
+  S[x=="U"] <- ">="
+
+  r <- "^([LU])![A-Za-z]*->[A-Za-z]*#(.*)<->(.*)$"
+  RHS <- numeric(nrow(A))
+  x <- gsub(r,"\\1",rownames(A))
+  l <- as.numeric(gsub(r,"\\2",rownames(A)))
+  u <- as.numeric(gsub(r,"\\3",rownames(A)))
+  RHS[x=="L"] <- l[x=="L"]
+  RHS[x=="U"] <- u[x=="U"]
+
+  idx <- RHS!=Inf
+  list("A"=A[idx,],"S"=S[idx],"RHS"=RHS[idx])
+}
+
+l1 <- exchange_constraints(prices)
+l2 <- volume_constraints(prices)
+
+bound_solution_constraint <- function(prices,owncur="ZEUR",bound=100)
+{
+  A <- Matrix(0,
+              ncol=length(names(prices)),
+              nrow=1)
+  rownames(A) <- "ZEUR->ZEUR"
+  colnames(A) <- names(prices)
+
+
+}
 
 
 ## # take subsample for debugging
