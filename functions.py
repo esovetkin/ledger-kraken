@@ -106,7 +106,7 @@ def orderbook_entry2array(orderbook_entry,invert_volume=False):
         p = 1/p
         v = v/p
 
-    return np.array(list(zip(p,v)))
+    return np.array(list(zip(p,v,p*v)))
 
 def dict_price_volume_interval(pair_key,cpcv):
     """
@@ -116,19 +116,30 @@ def dict_price_volume_interval(pair_key,cpcv):
     """
     p = cpcv[:,0]
     v = cpcv[:,1]
+    ov = cpcv[:,2]
     v = np.cumsum(v)
+    ov = np.cumsum(ov)
 
     res = {}
     for i in range(v.shape[0]):
         vl = v[i-1] if i > 0 else 0
         vu = v[i]
-        key = pair_key+'#'+str(vl)+'<->'+str(vu)
+        ovl = ov[i-1] if i > 0 else 0
+        ovu = ov[i]
+        key = pair_key+'#'+\
+            str(vl)+'-'+str(vu)+'<->'+\
+            str(ovl)+'-'+str(ovu)
+
         res[key] = p[i]
 
     # assume the last order in orderbook is infinite
     vl = v[-1]
     vu = 'Inf'
-    key = pair_key+'#'+str(vl)+'<->'+str(vu)
+    ovl = ov[-1]
+    ovu = 'Inf'
+    key = pair_key+'#'+\
+            str(vl)+'-'+str(vu)+'<->'+\
+            str(ovl)+'-'+str(ovu)
     res[key] = p[-1]
 
     return res
@@ -147,9 +158,86 @@ def price_matrix(ticker, pairs):
         fp,fq = pair_fees(key,pairs)
 
         res[p] = float(item['a'][0])*(1-fp)
-        res[q] = 1/float(item['b'][0])*(1+fq)
+        res[q] = (1/float(item['b'][0]))*(1+fq)
 
     return res
+
+def orderbook_reshape_by_volume(item, by_volumes, tol=1e-6):
+    """Split orderbook by cumulative volume rule
+
+    This function is a disaster.
+
+    :item: orderbook entry
+
+    :by_volumes: a list of volumes in the output orderbook entry. It
+    is assumed that every entry of by_volumes is smaller or equal than
+    the volume in item, and that cumvol of by_volumes contains values
+    from cumvol from item
+
+    :return: orderbook entry
+
+    """
+    item = np.array(item).astype(float)
+
+    res = []
+    i = 0
+    cur = item[i,:].copy()
+
+    for v in by_volumes:
+        if i >= item.shape[0]:
+            res += [[cur[0],v,cur[2]]]
+            continue
+
+        while v > cur[1] or isclose(v,cur[1],abs_tol=tol):
+            if not isclose(cur[1],0, abs_tol = tol):
+                res += [[cur[0],cur[1],cur[2]]]
+            v -= cur[1]
+            i += 1
+            if i >= item.shape[0]:
+                break
+            cur = item[i,:].copy()
+
+        if isclose(v,0,abs_tol = tol):
+            continue
+
+        if i >= item.shape[0]:
+            continue
+
+        res += [[cur[0],v,cur[2]]]
+        cur[1] -= v
+
+    return res
+
+def orderbook2commonvolumes(item1,item2):
+    """Convert 2 orderbook entries to common volumes
+
+    :item1,item2: orderbook entries
+
+    :return: (res1,res2) a tuple of converted orderbook entries
+
+    """
+    A = np.array(item1)
+    B = np.array(item2)
+
+    vA = np.cumsum(A[:,1].astype(float))
+    vB = np.cumsum(B[:,1].astype(float))
+    V = np.unique(np.concatenate((vA,vB),axis=0))
+    V = np.diff(np.concatenate(([0],V),axis=0))
+
+    ipdb.set_trace()
+
+    resA = orderbook_reshape_by_volume(A,V)
+    resB = orderbook_reshape_by_volume(B,V)
+
+    if len(resA) != len(resB):
+        ipdb.set_trace()
+        raise RuntimeError("Your buggy shit: orderbook_reshape_by_volume")
+    for i in range(len(resA)):
+        if not isclose(resA[i][1],resB[i][1],abs_tol = 1e-9):
+            ipdb.set_trace()
+            raise RuntimeError("Your buggy shit: orderbook_reshape_by_volume")
+
+    return (resA,resB)
 
 def depth_matrix(orderbook, pairs):
     """Compute matrix prices with available volumes
@@ -165,63 +253,85 @@ def depth_matrix(orderbook, pairs):
         p,q = pair_name(key,pairs)
         fp,fq = pair_fees(key,pairs)
 
-        a = orderbook_entry2array(item[key]['asks'], False)
-        b = orderbook_entry2array(item[key]['bids'], True)
+        ipdb.set_trace()
+
+        a,b = orderbook2commonvolumes(item[key]['asks'],
+                                      item[key]['bids'])
+        a = orderbook_entry2array(a, False)
+        b = orderbook_entry2array(b, True)
+
+        ipdb.set_trace()
+
         a[:,0] = a[:,0]*(1-fp)
         b[:,0] = b[:,0]*(1-fq)
 
-        res.update(dict_price_volume_interval(p,a))
-        res.update(dict_price_volume_interval(q,b))
+        a = dict_price_volume_interval(p,a)
+        b = dict_price_volume_interval(q,b)
+
+        ipdb.set_trace()
+
+        res.update(a)
+        res.update(b)
 
     return res
 
-def invert_volume(key, item):
-    """Invert volume of the depth_matrix
+def cluster_1d_vector(vector, n_clusters):
+    """Cluster 1d vector
 
-    :key: valid key of the depth_matrix
-    """
-    r=re.compile('^(.*)->(.*)#(.*)<->(.*)$')
+    Convert [0,1,2,3,...,Inf] -> {0:0,1:cluster1,...,Inf:Inf}
 
-    if not r.match(key):
-        return key
-
-    c1 = r.sub(r'\1',key)
-    c2 = r.sub(r'\2',key)
-    v1 = str(item*float(r.sub(r'\3',key)))
-    v2 = str(item*float(r.sub(r'\4',key)))
-    return {'key':c2+'->'+c1+'#'+v1+'<->'+v2,
-            'value':1/item}
-
-def cluster_volumes(depth_matrix, number_clusters=100):
-    """Compute common volumes in depth_matrix
-
-    :depth_matrix: whatever depth_matrix returns
+    :vector: 1d np.array
     :number_clusters: number of clusters to combine the order volumes
 
     """
-    r=re.compile('^.*->.*#(.*)<->(.*)$')
+    vector = np.unique(sorted(np.array(vector)))
+    v = vector[np.logical_and(vector!=float('inf'),vector!=0)]
+    n_clusters = min(v.shape[0],n_clusters)
 
+    if n_clusters > 1:
+        kmeans = KMeans(n_clusters = n_clusters).fit(v.reshape(-1,1))
+        label = lambda x: kmeans.cluster_centers_[
+            kmeans.predict(np.array(v).reshape(-1,1))][0,0]
+    else:
+        label = lambda x: 0
+
+    res = {}
+    for v in vector:
+        if float('inf') == v:
+            res[v] = float('inf')
+        elif 0 == v:
+            res[v] = 0
+        else:
+            res[v] = label(v)
+
+    return res
+
+def cluster_volumes(depth_matrix, cur, n_intervals = 100):
+    """Cluster volumes of the depth_matrix
+
+    :depth_matrix: whatever depth_matrix returns
+    :cur: currency to consider
+    :n_intervals: number of intervals to produce
+    :return: dictionary: key of depth_matrix -> new key
+    """
+    r = re.compile(r'^'+cur+'->(.*)#(.*)-(.*)<->(.*)-(.*)$')
     v = []
-    v += [float(r.sub(r'\1',x)) for x in depth_matrix.keys()]
-    v += [float(r.sub(r'\2',x)) for x in depth_matrix.keys()]
-    v = np.unique(sorted(v))
-    l = np.zeros(v.shape)
+    v += [float(r.gsub(r'\2',x)) for x in depth_matrix.keys()]
+    v += [float(r.gsub(r'\3',x)) for x in depth_matrix.keys()]
+    clusters = cluster_1d_vector(v, n_clusters = n_intervals - 1)
 
-    kmeans = KMeans(n_clusters = 100).fit(v[np.logical_and(v!=float('inf'),v!=0)].reshape(-1,1))
-
-    l[v!=float('inf')] = kmeans.cluster_centers_[
-        kmeans.predict(v[v!=float('inf')].reshape(-1,1))][:,0]
-    l[v==0] = 0
-    l[v==float('inf')] = float('inf')
-
-    return {v[i]:l[i] for i in range(len(v))}
+    res = {}
+    for x in depth_matrix.keys():
+        what = r.gsub(r'\1',x)
+        vl = float(r.gsub(r'\2',x))
+        vu = float(r.gsub(r'\3',x))
+        res[x] = what + '#'
 
 def approximate_depth_matrix(depth_matrix):
     """Reduce depth_matrix by making volumes common
 
     :depth_matrix: whatever depth_matrix returns
     :return: the same format as in depth_matrix
-
     """
     r=re.compile('^([A-Za-z]*)->.*#(.*)<->(.*)$')
     curs=set([r.sub(r'\1',x) for x in depth_matrix.keys()])
@@ -229,20 +339,11 @@ def approximate_depth_matrix(depth_matrix):
     res = {}
 
     for cur in curs:
-        r=re.compile('^(.*->'+cur+')#(.*)<->(.*)$')
-        m = {invert_volume(x,depth_matrix[x])['key']:\
-             invert_volume(x,depth_matrix[x])['value']
-             for x in depth_matrix.keys() if r.match(x)}
-        r=re.compile('^('+cur+'->.*)#(.*)<->(.*)$')
-        m.update({x:depth_matrix[x]
-                  for x in depth_matrix.keys() if r.match(x)})
-        common=cluster_volumes(m)
+        common=cluster_volumes(depth_matrix=depth_matrix,cur=cur)
 
         x = {}
         for key,item in m.items():
-            k = r.sub(r'\1',key)+'#'+\
-                str(common[float(r.sub(r'\2',key))])+'<->'+\
-                str(common[float(r.sub(r'\3',key))])
+            k = r.sub(r'\1',key)+'#'+common[key]
             if k not in x:
                 x[k]=[]
             x[k]+=[item]
@@ -707,4 +808,3 @@ def depth_format(result,pair):
     table+=hline
 
     return table
-
