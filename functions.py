@@ -97,12 +97,14 @@ def orderbook_entry2array(orderbook_entry,invert_volume=False):
     """
     if not isinstance(orderbook_entry,np.float):
         orderbook_entry = np.array(orderbook_entry)
+        orderbook_entry = orderbook_entry.astype(float)
 
     p = orderbook_entry[:,0]
     v = orderbook_entry[:,1]
 
     if invert_volume:
-        v = 1/v
+        p = 1/p
+        v = v/p
 
     return np.array(list(zip(p,v)))
 
@@ -156,7 +158,7 @@ def depth_matrix(orderbook, pairs):
         a = orderbook_entry2array(item[key]['asks'], False)
         b = orderbook_entry2array(item[key]['bids'], True)
         a[:,0] = a[:,0]*(1-fp)
-        b[:,0] = (1/b[:,0])*(1+fq)
+        b[:,0] = b[:,0]*(1-fq)
 
         res.update(dict_price_volume_interval(p,a))
         res.update(dict_price_volume_interval(q,b))
