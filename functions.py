@@ -88,11 +88,11 @@ def pair_fees(key, pairs):
 
     return (fp/100,fq/100)
 
-def orderbook_entry2array(orderbook_entry,invert_volume=False):
+def orderbook_entry2array(orderbook_entry,invert_price=False):
     """Convert orderbook entry to np.array
 
     :orderbook_entry: list of tuples of 3
-    :invert_volume: if True invert volume
+    :invert_price: if True invert volume
     :return: 2d np.array
     """
     if not isinstance(orderbook_entry,np.float):
@@ -102,44 +102,36 @@ def orderbook_entry2array(orderbook_entry,invert_volume=False):
     p = orderbook_entry[:,0]
     v = orderbook_entry[:,1]
 
-    if invert_volume:
+    if invert_price:
         p = 1/p
-        v = v/p
 
-    return np.array(list(zip(p,v,p*v)))
+    return np.array(list(zip(p,v)))
 
-def dict_price_volume_interval(pair_key,cpcv):
+def dict_price_volume_interval(pair_key,cpcv,base_cur):
     """
     :pair_key: name of the pair
     :cpcv: whatever orderbook_entry2array returns
-    :return: dictionary '<pair_key>#<v1><-><v2>': float
+    :base_cur: base currency to be used in key
+    :return: dictionary '<pair_key>$base#<v1><-><v2>': float
     """
     p = cpcv[:,0]
     v = cpcv[:,1]
-    ov = cpcv[:,2]
     v = np.cumsum(v)
-    ov = np.cumsum(ov)
 
     res = {}
     for i in range(v.shape[0]):
         vl = v[i-1] if i > 0 else 0
         vu = v[i]
-        ovl = ov[i-1] if i > 0 else 0
-        ovu = ov[i]
-        key = pair_key+'#'+\
-            str(vl)+'-'+str(vu)+'<->'+\
-            str(ovl)+'-'+str(ovu)
+        key = pair_key+'$'+base_cur+'#'+\
+            str(vl)+'<->'+str(vu)
 
         res[key] = p[i]
 
     # assume the last order in orderbook is infinite
     vl = v[-1]
     vu = 'Inf'
-    ovl = ov[-1]
-    ovu = 'Inf'
-    key = pair_key+'#'+\
-            str(vl)+'-'+str(vu)+'<->'+\
-            str(ovl)+'-'+str(ovu)
+    key = pair_key+'$'+base_cur+'#'+\
+            str(vl)+'<->'+str(vu)
     res[key] = p[-1]
 
     return res
@@ -224,8 +216,6 @@ def orderbook2commonvolumes(item1,item2):
     V = np.unique(np.concatenate((vA,vB),axis=0))
     V = np.diff(np.concatenate(([0],V),axis=0))
 
-    ipdb.set_trace()
-
     resA = orderbook_reshape_by_volume(A,V)
     resB = orderbook_reshape_by_volume(B,V)
 
@@ -250,25 +240,20 @@ def depth_matrix(orderbook, pairs):
     res = {}
 
     for key,item in orderbook.items():
+        base_cur = pairs[key]['base']
         p,q = pair_name(key,pairs)
         fp,fq = pair_fees(key,pairs)
-
-        ipdb.set_trace()
 
         a,b = orderbook2commonvolumes(item[key]['asks'],
                                       item[key]['bids'])
         a = orderbook_entry2array(a, False)
         b = orderbook_entry2array(b, True)
 
-        ipdb.set_trace()
-
         a[:,0] = a[:,0]*(1-fp)
         b[:,0] = b[:,0]*(1-fq)
 
-        a = dict_price_volume_interval(p,a)
-        b = dict_price_volume_interval(q,b)
-
-        ipdb.set_trace()
+        a = dict_price_volume_interval(p,a,base_cur)
+        b = dict_price_volume_interval(q,b,base_cur)
 
         res.update(a)
         res.update(b)
@@ -306,26 +291,29 @@ def cluster_1d_vector(vector, n_clusters):
 
     return res
 
-def cluster_volumes(depth_matrix, cur, n_intervals = 100):
+def cluster_volumes(depth_matrix, n_intervals = 50):
     """Cluster volumes of the depth_matrix
 
     :depth_matrix: whatever depth_matrix returns
-    :cur: currency to consider
     :n_intervals: number of intervals to produce
     :return: dictionary: key of depth_matrix -> new key
     """
-    r = re.compile(r'^'+cur+'->(.*)#(.*)-(.*)<->(.*)-(.*)$')
+    r = re.compile('^(.*)->(.*)\$(.*)#(.*)<->(.*)$')
     v = []
-    v += [float(r.gsub(r'\2',x)) for x in depth_matrix.keys()]
-    v += [float(r.gsub(r'\3',x)) for x in depth_matrix.keys()]
+    v += [float(r.sub(r'\4',x)) for x in depth_matrix.keys()]
+    v += [float(r.sub(r'\5',x)) for x in depth_matrix.keys()]
     clusters = cluster_1d_vector(v, n_clusters = n_intervals - 1)
 
     res = {}
     for x in depth_matrix.keys():
-        what = r.gsub(r'\1',x)
-        vl = float(r.gsub(r'\2',x))
-        vu = float(r.gsub(r'\3',x))
-        res[x] = what + '#'
+        fr = r.sub(r'\1',x)
+        to = r.sub(r'\2',x)
+        base = r.sub(r'\3',x)
+        vl = str(clusters[float(r.sub(r'\4',x))])
+        vu = str(clusters[float(r.sub(r'\5',x))])
+        res[x] = fr+'->'+to+'$'+base+'#'+vl+'<->'+vu
+
+    return res
 
 def approximate_depth_matrix(depth_matrix):
     """Reduce depth_matrix by making volumes common
@@ -333,17 +321,21 @@ def approximate_depth_matrix(depth_matrix):
     :depth_matrix: whatever depth_matrix returns
     :return: the same format as in depth_matrix
     """
-    r=re.compile('^([A-Za-z]*)->.*#(.*)<->(.*)$')
-    curs=set([r.sub(r'\1',x) for x in depth_matrix.keys()])
+    r=re.compile('^(.*)->(.*)\$(.*)#(.*)<->(.*)$')
+    curs=set([r.sub(r'\3',x) for x in depth_matrix.keys()])
 
     res = {}
 
     for cur in curs:
-        common=cluster_volumes(depth_matrix=depth_matrix,cur=cur)
+        r = re.compile('^(.*)->(.*)\$'+cur+'#(.*)<->(.*)$')
+        m = {x:depth_matrix[x]
+             for x in depth_matrix.keys()
+             if r.match(x)}
+        common=cluster_volumes(depth_matrix=m)
 
         x = {}
         for key,item in m.items():
-            k = r.sub(r'\1',key)+'#'+common[key]
+            k = common[key]
             if k not in x:
                 x[k]=[]
             x[k]+=[item]
@@ -353,15 +345,15 @@ def approximate_depth_matrix(depth_matrix):
 
         d = {}
         for key,item in x.items():
-            if r.sub(r'\2',key) == r.sub(r'\3',key):
-                d[r.sub(r'\3',key)] = item
+            if r.sub(r'\3',key) == r.sub(r'\4',key):
+                d[r.sub(r'\4',key)] = item
 
         for key,item in x.items():
-            if r.sub(r'\2',key) in d:
-                x[key] = (item + d[r.sub(r'\2',key)])/2
+            if r.sub(r'\3',key) in d:
+                x[key] = (item + d[r.sub(r'\3',key)])/2
 
         x = {key:item for key,item in x.items()
-             if r.sub(r'\2',key) != r.sub(r'\3',key)}
+             if r.sub(r'\3',key) != r.sub(r'\4',key)}
 
         res.update(x)
 

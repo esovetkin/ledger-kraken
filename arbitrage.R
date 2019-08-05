@@ -38,18 +38,19 @@ read_ticker_prices <- function(fn)
 
 exchange_constraints <- function(prices, owncur="ZEUR")
 {
-  r <- "^([A-Za-z]*)->([A-Za-z]*)#(.*)<->(.*)$"
-  curs <- unique(c(gsub(r,"\\1#\\3<->\\4",names(prices))))
+  r <- "^(.*)->(.*)\\$(.*)#(.*)<->(.*)$"
+  curs <- unique(c(gsub(r,"\\1#\\4<->\\5",names(prices))))
   A <- Matrix(0,ncol=length(names(prices))+1,nrow=length(curs))
   rownames(A) <- curs
   colnames(A) <- c(names(prices),paste0(owncur,"->",owncur))
 
   for (k in names(prices)) {
-    re <- "^([A-Za-z]*)->([A-Za-z]*)#(.*)<->(.*)$"
+    re <- "^(.*)->(.*)\\$(.*)#(.*)<->(.*)$"
     from <- gsub(re,"\\1",k)
     to <- gsub(re,"\\2",k)
-    vl <- gsub(re,"\\3",k)
-    vu <- gsub(re,"\\4",k)
+    base <- gsub(re,"\\3",k)
+    vl <- gsub(re,"\\4",k)
+    vu <- gsub(re,"\\5",k)
 
     A[paste0(from,"#",vl,"<->",vu),k] = 1
     A[paste0(to,"#",vl,"<->",vu),k] = -prices[k][[1]]
