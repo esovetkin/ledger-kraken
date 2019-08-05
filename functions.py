@@ -207,10 +207,11 @@ def cluster_volumes(depth_matrix, number_clusters=100):
     v = np.unique(sorted(v))
     l = np.zeros(v.shape)
 
-    kmeans = KMeans(n_clusters = 100).fit(v[v!=float('inf')].reshape(-1,1))
+    kmeans = KMeans(n_clusters = 100).fit(v[np.logical_and(v!=float('inf'),v!=0)].reshape(-1,1))
 
     l[v!=float('inf')] = kmeans.cluster_centers_[
         kmeans.predict(v[v!=float('inf')].reshape(-1,1))][:,0]
+    l[v==0] = 0
     l[v==float('inf')] = float('inf')
 
     return {v[i]:l[i] for i in range(len(v))}
