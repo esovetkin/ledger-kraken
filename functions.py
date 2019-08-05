@@ -111,15 +111,25 @@ def orderbook_entry2array(orderbook_entry,invert_volume=False):
 def dict_price_volume_interval(pair_key,cpcv):
     """
     :pair_key: name of the pair
-    :cpcv: whatever compute_price_for_volume returns
+    :cpcv: whatever orderbook_entry2array returns
     :return: dictionary '<pair_key>#<v1><-><v2>': float
     """
+    p = cpcv[:,0]
+    v = cpcv[:,1]
+    v = np.cumsum(v)
+
     res = {}
-    for i in range(cpcv.shape[0]):
-        vl = cpcv[i,1]
-        vu = cpcv[i+1,1] if i+1 < cpcv.shape[0] else 'Inf'
+    for i in range(v.shape[0]):
+        vl = v[i-1] if i > 0 else 0
+        vu = v[i]
         key = pair_key+'#'+str(vl)+'<->'+str(vu)
-        res[key] = cpcv[i,0]
+        res[key] = p[i]
+
+    # assume the last order in orderbook is infinite
+    vl = v[-1]
+    vu = 'Inf'
+    key = pair_key+'#'+str(vl)+'<->'+str(vu)
+    res[key] = p[-1]
 
     return res
 
