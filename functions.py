@@ -175,7 +175,7 @@ def depth_matrix(orderbook, pairs):
 
     return res
 
-def invert_volume(key):
+def invert_volume(key, item):
     """Invert volume of the depth_matrix
 
     :key: valid key of the depth_matrix
@@ -187,9 +187,10 @@ def invert_volume(key):
 
     c1 = r.sub(r'\1',key)
     c2 = r.sub(r'\2',key)
-    v1 = str(1/float(r.sub(r'\3',key)))
-    v2 = str(1/float(r.sub(r'\4',key)))
-    return c2+'->'+c1+'#'+v2+'<->'+v1
+    v1 = str(item*float(r.sub(r'\3',key)))
+    v2 = str(item*float(r.sub(r'\4',key)))
+    return {'key':c2+'->'+c1+'#'+v1+'<->'+v2,
+            'value':1/item}
 
 def cluster_volumes(depth_matrix, number_clusters=100):
     """Compute common volumes in depth_matrix
@@ -228,7 +229,8 @@ def approximate_depth_matrix(depth_matrix):
 
     for cur in curs:
         r=re.compile('^(.*->'+cur+')#(.*)<->(.*)$')
-        m = {invert_volume(x):depth_matrix[x]
+        m = {invert_volume(x,depth_matrix[x])['key']:\
+             invert_volume(x,depth_matrix[x])['value']
              for x in depth_matrix.keys() if r.match(x)}
         r=re.compile('^('+cur+'->.*)#(.*)<->(.*)$')
         m.update({x:depth_matrix[x]
