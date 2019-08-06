@@ -67,7 +67,7 @@ def query_orderbook(kraken, pairs):
 
     """
     res = {}
-    for pair in pairs:
+    for pair in tqdm(pairs):
         args = {'pair':pair}
         x = kraken.query_public('Depth',args)
 
@@ -315,11 +315,17 @@ def lp_variables_names(prices,owncur="ZEUR"):
     xp = {}
     px = {}
 
-    x0 = owncur+'->'+owncur
-    xp["x0"] = x0
-    px[x0] = "x0"
+    i = 0
+    r = re.compile("^(.*)->(.*)\$(.*)#(.*)<->(.*)$")
+    for k in prices.keys():
+        if owncur == r.sub(r'\1',k):
+            x = owncur+'#' + r.sub(r'\4',k) + '<->' + r.sub(r'\5',k)
+            key = "y" + str(int(i))
+            i += 1
+            xp[key] = x
+            px[x] = key
 
-    i = 1
+    i = 0
     for k in prices.keys():
         key="x"+str(int(i))
         i += 1
@@ -345,6 +351,10 @@ def lp_constraints_exchange(prices, sx):
     for x in prices.keys():
         pq_names[r.sub(r'\1',x)] += [str(prices[x]) + ' ' + sx[x]]
         q_names[r.sub(r'\2',x)] += [sx[x]]
+
+    for v,y in sx.items():
+        if re.match(r'y[0-9]*',y):
+            q_names[re.sub('^(.*)#.*$',r'\1',v)] += y
 
     res = []
     done = set()
@@ -393,6 +403,15 @@ def lp_constraints_volume(prices, sx):
 
         res += [sx[key] + ' <= ' + str(x*prices[key]) + ';']
 
+    for v,y in sx.items():
+        if not re.match(r'y[0-9]*',y):
+            continue
+
+        vl,vr = [re.sub(r'^.*#(.*)<->(.*)',x,v)
+                 for x in (r'\1',r'\2')]
+        x = float(vr) - float(vl)
+        res += [y + ' <= ' + str(x) + ';']
+
     return res
 
 def lp_constraints_non_zero(prices, sx):
@@ -403,26 +422,61 @@ def lp_constraints_non_zero(prices, sx):
     :return: list of strings for lp file format
     """
     res = []
-    for key in prices.keys():
-        res += [sx[key] + ' >= 0;']
+
+    for _,x in sx.items():
+        res += [x + ' >= 0;']
 
     return res
+
+def lp_contraints_bounded(sx):
+
+    res = []
+    for v,y in sx.items():
+        if not re.match(r'y[0-9]*',y):
+            continue
+
+        if not re.match(r'^.*#.*<->inf$',v):
+            continue
+
+        res += [ y + ' <= 1000;']
+
+    return res
+
+def lp_objective(sx):
+    """Generate objective function string
+
+    :sx: dict: '<prices key>' -> '<variable name>'
+    :return: list of strings for lp file format
+    """
+
+    s = ''
+    for v,y in sx.items():
+        if not re.match(r'y[0-9]*',y):
+            continue
+
+        if 0 != len(s):
+            s += ' + '
+        s += y
+
+    return ["max: " + s + ";"]
 
 def save_lp(prices, fn):
     _, sx = lp_variables_names(prices, owncur = "ZEUR")
     res = []
 
     res += ["/* Objective function: */"]
-    res += ["max: x0;"]
+    res += lp_objective(sx)
     res += ["/* Exchange constraints: */"]
     res += lp_constraints_exchange(prices, sx)
     res += ["/* Volume constraints: */"]
     res += lp_constraints_volume(prices, sx)
     res += ["/* Sign constraints: */"]
     res += lp_constraints_non_zero(prices, sx)
+    res += ["/* Bounded problem constraint: */"]
+    res += lp_contraints_bounded(sx)
 
     with open(fn, 'w') as f:
-        write('\n'.join(res))
+        f.write('\n'.join(res))
 
 
 def cluster_1d_vector(vector, n_clusters):
