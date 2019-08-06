@@ -238,7 +238,7 @@ def orderbook2commonvolumes(item1,item2):
 
     return (resA,resB)
 
-def check_same_volumes_key(a,b, tol=1e-9):
+def check_same_volumes_key(a,b, tol=1e-7):
     resA = resB = {}
     r=re.compile('^(.*)->(.*)\$(.*)#(.*)<->(.*)$')
 
@@ -258,7 +258,7 @@ def check_same_volumes_key(a,b, tol=1e-9):
             continue
 
         idx = np.sum(np.abs(vB - (float(r.sub(r'\4',key)),
-                                  float(r.sub(r'\5',key)))),axis=1) < 1e-7
+                                  float(r.sub(r'\5',key)))),axis=1) < tol
         if not any(idx):
             ipdb.set_trace()
             raise RuntimeError("no similar volumes found")
@@ -271,7 +271,6 @@ def check_same_volumes_key(a,b, tol=1e-9):
         resB[k]=b[kB]
 
     return (resA,resB)
-
 
 def depth_matrix(orderbook, pairs):
     """Compute matrix prices with available volumes
