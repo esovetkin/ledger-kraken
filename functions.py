@@ -14,6 +14,12 @@ from sklearn.cluster import KMeans
 
 import ipdb
 
+def f2s(x, f="{:.8f}"):
+    if isinstance(x,str):
+        return x
+
+    return f.format(x)
+
 def query_tradable_pairs(kraken):
     res = kraken.query_public('AssetPairs')
 
@@ -123,7 +129,7 @@ def dict_price_volume_interval(pair_key,cpcv,base_cur):
         vl = v[i-1] if i > 0 else 0
         vu = v[i]
         key = pair_key+'$'+base_cur+'#'+\
-            str(vl)+'<->'+str(vu)
+            f2s(vl)+'<->'+f2s(vu)
 
         res[key] = p[i]
 
@@ -131,7 +137,7 @@ def dict_price_volume_interval(pair_key,cpcv,base_cur):
     vl = v[-1]
     vu = 'Inf'
     key = pair_key+'$'+base_cur+'#'+\
-            str(vl)+'<->'+str(vu)
+            f2s(vl)+'<->'+f2s(vu)
     res[key] = p[-1]
 
     return res
@@ -229,6 +235,41 @@ def orderbook2commonvolumes(item1,item2):
 
     return (resA,resB)
 
+def check_same_volumes_key(a,b, tol=1e-9):
+    resA = resB = {}
+    r=re.compile('^(.*)->(.*)\$(.*)#(.*)<->(.*)$')
+
+    vA = np.array([(r.sub(r'\4',x),r.sub(r'\5',x))
+                   for x in a.keys()]).astype(float)
+    vB = np.array([(r.sub(r'\4',x),r.sub(r'\5',x))
+                   for x in b.keys()]).astype(float)
+
+    for key, item in a.items():
+        k = r.sub(r'\2',key)+'->'+r.sub(r'\1',key)+\
+            '$'+r.sub(r'\3',key)+'#'+\
+            r.sub(r'\4',key)+'<->'+r.sub(r'\5',key)
+
+        if k in b:
+            resA[key]=item
+            resB[k]=b[k]
+            continue
+
+        idx = np.sum(np.abs(vB - (float(r.sub(r'\4',key)),
+                                  float(r.sub(r'\5',key)))),axis=1) < 1e-7
+        if not any(idx):
+            ipdb.set_trace()
+            raise RuntimeError("no similar volumes found")
+
+        vl, vr = vB[idx][0,:]
+        kB = r.sub(r'\2',key)+'->'+r.sub(r'\1',key)+\
+            '$'+r.sub(r'\3',key)+'#'+f2s(vl)+'<->'+f2s(vr)
+
+        resA[key]=item
+        resB[k]=b[kB]
+
+    return (resA,resB)
+
+
 def depth_matrix(orderbook, pairs):
     """Compute matrix prices with available volumes
 
@@ -254,6 +295,8 @@ def depth_matrix(orderbook, pairs):
 
         a = dict_price_volume_interval(p,a,base_cur)
         b = dict_price_volume_interval(q,b,base_cur)
+
+        a,b = check_same_volumes_key(a,b)
 
         res.update(a)
         res.update(b)
