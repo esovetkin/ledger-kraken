@@ -4,37 +4,7 @@ require("Matrix")
 
 fn <- "temp.json"
 
-read_depth_prices <- function(fn)
-{
-  prices <- rjson::fromJSON(file=fn)
-
-  curs  <- unique(c(gsub("^([A-Za-z]*)->([A-Za-z]*)#(.*)<->(.*)$","\\1\\3\\4",names(X)),
-                    gsub("^([A-Za-z]*)->([A-Za-z]*)#(.*)<->(.*)$","\\2\\3\\4",names(X))))
-
-
-  return()
-}
-
-read_ticker_prices <- function(fn)
-{
-  data <- rjson::fromJSON(file=fn)
-
-  pairs <- simplify2array(strsplit(names(X),split="->"))
-  curs <- unique(as.character(pairs))
-
-  data <- matrix(0,ncol=length(curs),nrow=length(curs))
-  colnames(data) <- curs
-  rownames(data) <- curs
-
-  for (x in names(X)) {
-    from <- strsplit(x,split="->")[[1]][1]
-    to <- strsplit(x,split="->")[[1]][2]
-    data[from,to] <- X[x][[1]]
-  }
-
-  for (x in curs)
-    data[x,x] <- 1
-}
+prices <- rjson::fromJSON(file=fn)
 
 exchange_constraints <- function(prices, owncur="ZEUR")
 {
@@ -64,105 +34,78 @@ exchange_constraints <- function(prices, owncur="ZEUR")
 
 volume_constraints <- function(prices,owncur="ZEUR")
 {
-  rows <- paste0(c("L!","U!"),sort(rep(names(prices),2)))
-  A <- Matrix(0,ncol=length(names(prices))+1,nrow=length(rows))
-  rownames(A) <- rows
+  A <- Matrix(0,ncol=length(names(prices))+1,nrow=length(names(prices)))
+  rownames(A) <- names(prices)
   colnames(A) <- c(names(prices),paste0(owncur,"->",owncur))
 
-  r <- "^([LU])!([A-Za-z]*->[A-Za-z]*#.*<->.*)$"
+  r <- "^(.*)->(.*)\\$(.*)#(.*)<->(.*)$"
 
   for (k in rownames(A)) {
-    A[k,gsub(r,"\\2",k)] <- 1
+    A[k,k] <- 1
   }
 
-  S <- character(nrow(A))
-  x <- gsub(r,"\\1",rownames(A))
-  S[x=="L"] <- "<="
-  S[x=="U"] <- ">="
+  S <- rep("<=",nrow(A))
 
-  r <- "^([LU])![A-Za-z]*->[A-Za-z]*#(.*)<->(.*)$"
   RHS <- numeric(nrow(A))
-  x <- gsub(r,"\\1",rownames(A))
-  l <- as.numeric(gsub(r,"\\2",rownames(A)))
-  u <- as.numeric(gsub(r,"\\3",rownames(A)))
-  RHS[x=="L"] <- l[x=="L"]
-  RHS[x=="U"] <- u[x=="U"]
+  fr <- gsub(r,"\\1",rownames(A))
+  base <- gsub(r,"\\3",rownames(A))
+  vl <- as.numeric(gsub(r,"\\4",rownames(A)))
+  vr <- as.numeric(gsub(r,"\\5",rownames(A)))
+  RHS[fr==base] <- (vr-vl)[fr==base]
+  RHS[fr!=base] <- as.numeric(prices[fr!=base])*((vr-vl)[fr!=base])
 
   idx <- RHS!=Inf
-  list("A"=A[idx,],"S"=S[idx],"RHS"=RHS[idx])
-}
+  A <- A[idx,]
+  S <- S[idx]
+  RHS <- RHS[idx]
 
-l1 <- exchange_constraints(prices)
-l2 <- volume_constraints(prices)
+  list("A"=A,"S"=S,"RHS"=RHS)
+}
 
 bound_solution_constraint <- function(prices,owncur="ZEUR",bound=100)
 {
   A <- Matrix(0,
-              ncol=length(names(prices)),
+              ncol=length(names(prices))+1,
               nrow=1)
-  rownames(A) <- "ZEUR->ZEUR"
-  colnames(A) <- names(prices)
+  x <- paste0(owncur,"->",owncur)
+  rownames(A) <- x
+  colnames(A) <- c(names(prices),x)
 
+  A[x,x] <- 1
 
+  S <- "<="
+  RHS <- bound
+
+  list("A"=A,"S"=S,"RHS"=RHS)
 }
 
-
-## # take subsample for debugging
-## idx <- unique(c(sample(colnames(data),size=3),"EUR"))
-## data <- data[idx,idx]
-
-# currency owned
-own.cur <- "ZEUR"
-upper.limit <- 100
-
-k <- ncol(data)
-
-# constraints matrix, rhs, direction, objective function vector
-const.mat <- matrix(0,ncol=k^2,nrow=k+1)
-colnames(const.mat) <- as.character(outer(colnames(data),colnames(data),
-                                          function(x,y) paste0(x,"->",y)))
-rownames(const.mat) <- c("bounded_constr",rownames(data))
-
-# right hand side for inequalities
-const.rhs <- c(upper.limit,rep(0,k))
-names(const.rhs) <- c("bounded_constr",colnames(data))
-
-# constraint directions
-const.dir <- c("<=",rep("=",k))
-
-# objective function vector
-objective.in <- c(rep(0,k^2))
-names(objective.in) <- colnames(const.mat)
-objective.in[paste0(own.cur,"->",own.cur)] <- 1
-
-# fill constaint matrix with elements
-const.mat[1,paste0(own.cur,"->",own.cur)] <- 1
-
-for (row in rownames(const.mat)[-1]) {
-  # columns for A part
-  idx.A <- colnames(const.mat)[grep(paste0(row,"->.*"),colnames(const.mat))]
-  # columns for B part
-  idx.B <- colnames(const.mat)[grep(paste0(".*->",row),colnames(const.mat))]
-
-  # index for exchange rates
-  idx.price <- simplify2array(strsplit(idx.B,split="->"))
-
-  # fill const.mat
-  const.mat[row,idx.B] <- -data[unique(idx.price[1,]),unique(idx.price[2,])]
-  const.mat[row,idx.A] <- 1
-
-  # fix diagonal element
-  if (own.cur == row) next
-
-  const.mat[row,paste0(row,"->",row)] <- 0
+objective_function <- function(prices,owncur)
+{
+  res <- numeric(length(names(prices))+1)
+  x <- paste0(owncur,"->",owncur)
+  names(res) <- c(names(prices),x)
+  res[x] <- 1
+  res
 }
+
+owncur <- "ZEUR"
+upperlimit <- 100
+
+l1 <- exchange_constraints(prices)
+l2 <- volume_constraints(prices)
+l3 <- bound_solution_constraint(prices,owncur=owncur,bound=upperlimit)
+objective <- objective_function(prices,owncur=owncur)
+
+A <- rbind(l1$A,l2$A,l3$A)
+S <- c(l1$S,l2$S,l3$S)
+RHS <- c(l1$RHS,l2$RHS,l3$RHS)
 
 # solve linear optimisation
 res <- lp(direction="max",
-          objective.in=objective.in,
-          const.mat=const.mat,
-          const.rhs=const.rhs,
-          const.dir=const.dir)
+          objective.in=objective,
+          const.mat=A,
+          const.rhs=RHS,
+          const.dir=S)
 
 # obtain strategy
 strategy <- res$solution
