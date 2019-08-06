@@ -12,6 +12,9 @@ import numpy as np
 
 from sklearn.cluster import KMeans
 
+from tqdm import tqdm
+from collections import defaultdict
+
 import ipdb
 
 def f2s(x, f="{:.8f}"):
@@ -302,6 +305,126 @@ def depth_matrix(orderbook, pairs):
         res.update(b)
 
     return res
+
+def lp_variables_names(prices,owncur="ZEUR"):
+    """Generate variable names from the depth_matrix
+
+    :prices: whatever depth_matrix returns
+
+    :return: dict 'x<id>' -> '<prices key>'
+    """
+    xp = {}
+    px = {}
+
+    x0 = owncur+'->'+owncur
+    xp["x0"] = x0
+    px[x0] = "x0"
+
+    i = 1
+    for k in prices.keys():
+        key="x"+str(int(i))
+        i += 1
+        xp[key] = k
+        px[k] = key
+
+    return (xp,px)
+
+def lp_constraints_exchange(prices, sx):
+    """Generate constraints for the exchange rates
+
+    :prices: whatever depth_matrix returns
+
+    :sx: dict: '<prices key>' -> '<variable name>'
+
+    :return: list of strings for lp file format
+
+    """
+    r = re.compile("^(.*)->(.*)\$(.*)#(.*)<->(.*)$")
+
+    pq_names = defaultdict(list)
+    q_names = defaultdict(list)
+    for x in prices.keys():
+        pq_names[r.sub(r'\1',x)] += [str(prices[x]) + ' ' + sx[x]]
+        q_names[r.sub(r'\2',x)] += [sx[x]]
+
+    res = []
+    done = set()
+    for key in tqdm(prices.keys()):
+        cur = r.sub(r'\1',key)
+        cur_vol = cur + '#' + \
+            r.sub(r'\4',key) + '<->' + \
+            r.sub(r'\5',key)
+        if hash(cur_vol) in done:
+            continue
+        done.add(hash(cur_vol))
+
+        s = ' - '
+        s += ' - '.join(pq_names[cur])
+        s += ' + '
+        s += ' + '.join(q_names[cur])
+        s += ' = 0;'
+
+        res += [s]
+
+    return res
+
+def lp_constraints_volume(prices, sx):
+    """Generate volume constraints
+
+    :prices: whatever depth_matrix returns
+    :sx: dict: '<prices key>' -> '<variable name>'
+    :return: list of strings for lp file format
+    """
+    r = re.compile("^(.*)->(.*)\$(.*)#(.*)<->(.*)$")
+
+    res = []
+    for key in prices.keys():
+        f,t,b,vl,vr = [r.sub(x,key)
+                       for x in (r'\1',r'\2',r'\3',
+                                 r'\4',r'\5')]
+
+        if vr in ('inf','Inf'):
+            continue
+
+        x = float(vr) - float(vl)
+
+        if f == b:
+            res += [sx[key] + ' <= ' + str(x) + ';']
+            continue
+
+        res += [sx[key] + ' <= ' + str(x*prices[key]) + ';']
+
+    return res
+
+def lp_constraints_non_zero(prices, sx):
+    """ Generate non-zero constraints
+
+    :prices: whatever depth_matrix returns
+    :sx: dict: '<prices key>' -> '<variable name>'
+    :return: list of strings for lp file format
+    """
+    res = []
+    for key in prices.keys():
+        res += [sx[key] + ' >= 0;']
+
+    return res
+
+def save_lp(prices, fn):
+    _, sx = lp_variables_names(prices, owncur = "ZEUR")
+    res = []
+
+    res += ["/* Objective function: */"]
+    res += ["max: x0;"]
+    res += ["/* Exchange constraints: */"]
+    res += lp_constraints_exchange(prices, sx)
+    res += ["/* Volume constraints: */"]
+    res += lp_constraints_volume(prices, sx)
+    res += ["/* Sign constraints: */"]
+    res += lp_constraints_non_zero(prices, sx)
+
+    with open(fn, 'w') as f:
+        write('\n'.join(res))
+
 
 def cluster_1d_vector(vector, n_clusters):
     """Cluster 1d vector
