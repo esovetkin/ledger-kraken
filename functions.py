@@ -541,6 +541,44 @@ def cluster_volumes(depth_matrix, n_intervals = 50):
 
     return res
 
+def head_depth_matrix(depth_matrix, n=5):
+    """Take only first few entries from the orderbook
+
+    :depth_matrix: whatever depth_matrix returns
+    :n: number of first volumes to consider
+
+    :return: the same format as in depth_matrix
+
+    """
+    r=re.compile('^(.*)->(.*)\$(.*)#(.*)<->(.*)$')
+    curs=set([(r.sub(r'\1',x),r.sub(r'\2',x))
+              for x in depth_matrix.keys()])
+
+    res = {}
+
+    for cur1,cur2 in tqdm(curs):
+        r1 = re.compile('^'+cur1+'->'+cur2+
+                        '\$(.*)#(.*)<->(.*)$')
+        r2 = re.compile('^'+cur2+'->'+cur1+
+                        '\$(.*)#(.*)<->(.*)$')
+        m = {x:depth_matrix[x]
+             for x in depth_matrix.keys()
+             if r1.match(x) or r2.match(x)}
+
+        v = []
+        for k in m.keys():
+            v += [float(r.sub(r'\4',k)),
+                  float(r.sub(r'\5',k))]
+        v = sorted(list(set(v)))[0:n]
+
+        m = {x:m[x]
+             for x in m.keys()
+             if float(r.sub(r'\5',x)) in v}
+
+        res.update(m)
+
+    return res
+
 def cluster_depth_matrix(depth_matrix):
     """Reduce depth_matrix by making volumes common
 
