@@ -305,7 +305,7 @@ def depth_matrix(orderbook, pairs):
 
     return res
 
-def lp_variables_names(prices,owncur="ZEUR"):
+def lp_variables_names(prices,owncur=["ZEUR"]):
     """Generate variable names from the depth_matrix
 
     :prices: whatever depth_matrix returns
@@ -317,13 +317,11 @@ def lp_variables_names(prices,owncur="ZEUR"):
 
     i = 0
     r = re.compile("^(.*)->(.*)\$(.*)#(.*)<->(.*)$")
-    for k in prices.keys():
-        if owncur == r.sub(r'\1',k):
-            x = owncur+'#' + r.sub(r'\4',k) + '<->' + r.sub(r'\5',k)
-            key = "y" + str(int(i))
-            i += 1
-            xp[key] = x
-            px[x] = key
+    for k in owncur:
+        key = "y" + str(int(i))
+        i += 1
+        xp[key] = k
+        px[k] = key
 
     i = 0
     for k in prices.keys():
@@ -362,21 +360,18 @@ def lp_constraints_exchange(prices, sx):
     done = set()
     for key in tqdm(prices.keys()):
         cur = r.sub(r'\1',key)
-        cur_vol = cur + '#' + \
-            r.sub(r'\4',key) + '<->' + \
-            r.sub(r'\5',key)
-        if hash(cur_vol) in done:
+        if hash(cur) in done:
             continue
-        done.add(hash(cur_vol))
+        done.add(hash(cur))
 
         s = ' - '
         s += ' - '.join(pq_names[cur])
         s += ' + '
         s += ' + '.join(q_names[cur])
 
-        if cur_vol in o_names:
+        if cur in o_names:
             s += ' + '
-            s += ' + '.join(o_names[cur_vol])
+            s += ' + '.join(o_names[cur])
 
         s += ' = 0;'
 
@@ -409,15 +404,6 @@ def lp_constraints_volume(prices, sx):
             continue
 
         res += [sx[key] + ' <= ' + str(x*prices[key]) + ';']
-
-    for v,y in sx.items():
-        if not re.match(r'y[0-9]*',y):
-            continue
-
-        vl,vr = [re.sub(r'^.*#(.*)<->(.*)',x,v)
-                 for x in (r'\1',r'\2')]
-        x = float(vr) - float(vl)
-        res += [y + ' <= ' + str(x) + ';']
 
     return res
 
@@ -468,7 +454,7 @@ def lp_objective(sx):
     return ["max: " + s + ";"]
 
 def save_lp(prices, fn):
-    _, sx = lp_variables_names(prices, owncur = "ZEUR")
+    _, sx = lp_variables_names(prices, owncur = ["ZEUR"])
     res = []
 
     res += ["/* Objective function: */"]
