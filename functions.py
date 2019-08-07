@@ -348,13 +348,15 @@ def lp_constraints_exchange(prices, sx):
 
     pq_names = defaultdict(list)
     q_names = defaultdict(list)
+    o_names = defaultdict(list)
     for x in prices.keys():
         pq_names[r.sub(r'\1',x)] += [str(prices[x]) + ' ' + sx[x]]
         q_names[r.sub(r'\2',x)] += [sx[x]]
 
     for v,y in sx.items():
-        if re.match(r'y[0-9]*',y):
-            q_names[re.sub('^(.*)#.*$',r'\1',v)] += y
+        if not re.match(r'y[0-9]*',y):
+            continue
+        o_names[v] += [y]
 
     res = []
     done = set()
@@ -371,6 +373,11 @@ def lp_constraints_exchange(prices, sx):
         s += ' - '.join(pq_names[cur])
         s += ' + '
         s += ' + '.join(q_names[cur])
+
+        if cur_vol in o_names:
+            s += ' + '
+            s += ' + '.join(o_names[cur_vol])
+
         s += ' = 0;'
 
         res += [s]
