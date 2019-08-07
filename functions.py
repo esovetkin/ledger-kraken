@@ -541,6 +541,37 @@ def cluster_volumes(depth_matrix, n_intervals = 50):
 
     return res
 
+def lp_read_solution(fn):
+    """Parse the lp solution file
+
+    :fn: filename
+    :return: dict 'objective' -> float, 'solution' -> dict
+
+    where solution dictionary is
+
+    '[xy][0-9]+' -> float
+
+    """
+    with open(fn,'r') as f:
+        lines = f.readlines()
+
+    res = {}
+    var = {}
+
+    objr = re.compile(r'^Value of objective function:\s+(\S+)\n$')
+    varr = re.compile(r'([xy][0-9]+)\s+(\S+)\n$')
+
+    for l in lines:
+        if objr.match(l):
+           res['objective'] = objr.sub(r'\1',l)
+
+        if varr.match(l):
+            var[varr.sub(r'\1',l)] = float(varr.sub(r'\2',l))
+
+    res['solution'] = var
+
+    return res
+
 def head_depth_matrix(depth_matrix, n=5):
     """Take only first few entries from the orderbook
 
