@@ -541,18 +541,22 @@ def cluster_volumes(depth_matrix, n_intervals = 50):
 
     return res
 
-def approximate_depth_matrix(depth_matrix):
+def cluster_depth_matrix(depth_matrix):
     """Reduce depth_matrix by making volumes common
+
+    The volumes in the orderbook are clustered with K-means algorithm,
+    where there prices are averaged
 
     :depth_matrix: whatever depth_matrix returns
     :return: the same format as in depth_matrix
+
     """
     r=re.compile('^(.*)->(.*)\$(.*)#(.*)<->(.*)$')
     curs=set([r.sub(r'\3',x) for x in depth_matrix.keys()])
 
     res = {}
 
-    for cur in curs:
+    for cur in tqdm(curs):
         r = re.compile('^(.*)->(.*)\$'+cur+'#(.*)<->(.*)$')
         m = {x:depth_matrix[x]
              for x in depth_matrix.keys()
