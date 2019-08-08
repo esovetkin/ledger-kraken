@@ -284,7 +284,7 @@ def depth_matrix(orderbook, pairs):
     """
     res = {}
 
-    for key,item in orderbook.items():
+    for key,item in tqdm(orderbook.items()):
         base_cur = pairs[key]['base']
         p,q = pair_name(key,pairs)
         fp,fq = pair_fees(key,pairs)
@@ -453,7 +453,7 @@ def lp_objective(sx):
             s += ' + '
         s += y
 
-    return ["max: " + s + ";"]
+    return ["max: " + s + " ;"]
 
 def save_lp(prices, fn):
     _, sx = lp_variables_names(prices, owncur = ["ZEUR"])
