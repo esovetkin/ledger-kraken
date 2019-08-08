@@ -15,6 +15,8 @@ from sklearn.cluster import KMeans
 from tqdm import tqdm
 from collections import defaultdict
 
+import networkx as nx
+
 import subprocess
 
 import ipdb
@@ -601,6 +603,30 @@ def lp_read_solution(fn):
 
     return res
 
+def get_solution_graph(solution):
+    """Convert dictionary to a solution graph
+
+    :solution: dict 'A->B$C#vl<->vr' -> float volume in B
+
+    :return: networkx graph
+    """
+    G = nx.Graph().to_directed()
+    r = re.compile('^(.*)->(.*)\$(.*)#(.*)<->(.*)$')
+
+    for k,v in solution.items():
+        if not r.match(k):
+            continue
+        f,t = [r.sub(x,k) for x in (r'\1',r'\2')]
+        if f not in G.nodes:
+            G.add_node(f)
+        if t not in G.nodes:
+            G.add_node(t)
+        if (f,t) not in G.edges:
+            G.add_edge(f,t,solution_volume=0)
+        G.edges[(f,t)]['solution_volume'] += v
+
+    return G
+
 def print_strategy(solution, xs):
     """Print strategy
 
@@ -613,7 +639,9 @@ def print_strategy(solution, xs):
         if a > 0:
             S[xs[v]] = a
 
-    return S
+    G = get_solution_graph(S)
+
+    return G
 
 def head_depth_matrix(depth_matrix, n=5):
     """Take only first few entries from the orderbook
