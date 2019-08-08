@@ -527,6 +527,35 @@ def cluster_volumes(depth_matrix, n_intervals = 50):
 
     return res
 
+def lp_replace_variables(ifn, ofn, xs):
+    """Replace all variables by their proper names
+
+    :ifn: path to the problem filename
+    :ofn: output file
+    :xs: dict with variable names
+    """
+    with open(ifn,'r') as f:
+        S = f.read()
+
+    v = re.compile(r' ([xy][0-9]+) ')
+    r1 = re.compile('^(.*)->(.*)\$(.*)#(.*)<->(.*)$')
+    r2 = re.compile('^(.*)#(.*)<->(.*)$')
+
+    for m in v.finditer(S):
+        old = m.groups(1)[0]
+        if old not in xs:
+            continue
+        new = xs[m.groups(1)[0]]
+        if r1.match(new):
+            new = r1.sub(r'\1\2',new)
+        if r2.match(new):
+            new = r2.sub(r'\1\2',new)
+
+        S = S.replace(' ' + old + ' ',' ' + new + ' ')
+
+    with open(ofn,'w') as f:
+        f.write(S)
+
 def lp_read_solution(fn):
     """Parse the lp solution file
 
