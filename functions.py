@@ -91,7 +91,7 @@ def pair_name(key, pairs):
     p = '->'.join(p)
     q = '->'.join(q)
 
-    return (p,q)
+    return (q,p)
 
 def pair_fees(key, pairs):
     fp = pairs[key]['fees'][0][1]
