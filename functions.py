@@ -15,6 +15,8 @@ from sklearn.cluster import KMeans
 from tqdm import tqdm
 from collections import defaultdict
 
+import subprocess
+
 import ipdb
 
 def f2s(x, f="{:.8f}"):
@@ -556,6 +558,18 @@ def lp_replace_variables(ifn, ofn, xs):
     with open(ofn,'w') as f:
         f.write(S)
 
+def debug(orderbook,pairs):
+    prices = depth_matrix(orderbook, pairs)
+    prices3 = head_depth_matrix(prices,n=2)
+    save_lp(prices3, 'problem3.lp')
+    xs, _ = lp_variables_names(prices3)
+    lp_replace_variables('problem3.lp','problem3_replaces.lp',xs)
+    f = open('problem3.output','w')
+    subprocess.call(['lp_solve','problem3.lp'],stdout=f)
+    f.close()
+    sol = lp_read_solution('problem3.output')
+    return print_strategy(sol,xs)
+
 def lp_read_solution(fn):
     """Parse the lp solution file
 
@@ -586,6 +600,20 @@ def lp_read_solution(fn):
     res['solution'] = var
 
     return res
+
+def print_strategy(solution, xs):
+    """Print strategy
+
+    :solution: whatever lp_read_solution outputs
+    :xs: dictionary '[xy][0-9]+' -> 'A->B$C#vl<->vr'
+    :return: ordered list of commands (strings)
+    """
+    S = {}
+    for v,a in solution['solution'].items():
+        if a > 0:
+            S[xs[v]] = a
+
+    return S
 
 def head_depth_matrix(depth_matrix, n=5):
     """Take only first few entries from the orderbook
