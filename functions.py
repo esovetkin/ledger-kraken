@@ -372,8 +372,8 @@ def lp_constraints_exchange(prices, sx):
         s += ' + '.join(q_names[cur])
 
         if cur in o_names:
-            s += ' + '
-            s += ' + '.join(o_names[cur])
+            s += ' - '
+            s += ' - '.join(o_names[cur])
 
         s += ' = 0;'
 
