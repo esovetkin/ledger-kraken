@@ -93,7 +93,7 @@ def pair_name(key, pairs):
     p = '->'.join(p)
     q = '->'.join(q)
 
-    return (q,p)
+    return (p,q)
 
 def pair_fees(key, pairs):
     fp = pairs[key]['fees'][0][1]
@@ -293,10 +293,10 @@ def depth_matrix(orderbook, pairs):
 
         a,b = orderbook2commonvolumes(item[key]['asks'],
                                       item[key]['bids'])
-        a = orderbook_entry2array(a, False)
-        b = orderbook_entry2array(b, True)
+        a = orderbook_entry2array(a, True)
+        b = orderbook_entry2array(b, False)
 
-        a[:,0] = a[:,0]*(1-fp)
+        a[:,0] = a[:,0]/(1+fp)
         b[:,0] = b[:,0]*(1-fq)
 
         a = dict_price_volume_interval(p,a,base_cur)
@@ -352,8 +352,9 @@ def lp_constraints_exchange(prices, sx):
     q_names = defaultdict(list)
     o_names = defaultdict(list)
     for x in prices.keys():
-        pq_names[r.sub(r'\1',x)] += [str(prices[x]) + ' ' + sx[x]]
         q_names[r.sub(r'\2',x)] += [sx[x]]
+        xp = r.sub(r'\2->\1$\3#\4<->\5',x)
+        pq_names[r.sub(r'\1',x)] += [str(1/prices[xp]) + ' ' + sx[x]]
 
     for v,y in sx.items():
         if not re.match(r'y[0-9]*',y):
@@ -363,19 +364,20 @@ def lp_constraints_exchange(prices, sx):
     res = []
     done = set()
     for key in tqdm(prices.keys()):
-        cur = r.sub(r'\1',key)
-        if hash(cur) in done:
+        fr = r.sub(r'\1',key)
+        to = r.sub(r'\2',key)
+        if hash(fr) in done:
             continue
-        done.add(hash(cur))
+        done.add(hash(fr))
 
         s = ' - '
-        s += ' - '.join(pq_names[cur])
+        s += ' - '.join(pq_names[fr])
         s += ' + '
-        s += ' + '.join(q_names[cur])
+        s += ' + '.join(q_names[fr])
 
-        if cur in o_names:
+        if fr in o_names:
             s += ' - '
-            s += ' - '.join(o_names[cur])
+            s += ' - '.join(o_names[fr])
 
         s += ' = 0;'
 
@@ -403,11 +405,11 @@ def lp_constraints_volume(prices, sx):
 
         x = float(vr) - float(vl)
 
-        if f == b:
+        if t == b:
             res += [sx[key] + ' <= ' + str(x) + ';']
             continue
 
-        res += [sx[key] + ' <= ' + str(x*prices[key]) + ';']
+        res += [sx[key] + ' <= ' + str(x/prices[key]) + ';']
 
     return res
 
