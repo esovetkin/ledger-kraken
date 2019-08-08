@@ -541,7 +541,7 @@ def lp_replace_variables(ifn, ofn, xs):
     with open(ifn,'r') as f:
         S = f.read()
 
-    v = re.compile(r' ([xy][0-9]+) ')
+    v = re.compile(r'([xy][0-9]+) ')
     r1 = re.compile('^(.*)->(.*)\$(.*)#(.*)<->(.*)$')
     r2 = re.compile('^(.*)#(.*)<->(.*)$')
 
@@ -555,7 +555,7 @@ def lp_replace_variables(ifn, ofn, xs):
         if r2.match(new):
             new = r2.sub(r'\1\2',new)
 
-        S = S.replace(' ' + old + ' ',' ' + new + ' ')
+        S = S.replace(old + ' ',new + ' ')
 
     with open(ofn,'w') as f:
         f.write(S)
