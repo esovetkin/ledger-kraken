@@ -67,16 +67,17 @@ def query_ticker(kraken, pairs):
 
     return res['result']
 
-def query_orderbook(kraken, pairs):
+def query_orderbook(kraken, pairs, count=20):
     """Query order book information
 
     :kraken: Kraken object
     :pairs: list of string, pair names
+    :count: maximum number of asks/bids
 
     """
     res = {}
     for pair in tqdm(pairs):
-        args = {'pair':pair}
+        args = {'pair':pair,'count':count}
         x = kraken.query_public('Depth',args)
 
         if len(x['error']):
