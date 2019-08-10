@@ -19,6 +19,10 @@ import networkx as nx
 
 import subprocess
 
+import os
+import shutil
+from kraken import Kraken
+
 import ipdb
 
 def f2s(x, f="{:.8f}"):
@@ -574,6 +578,42 @@ def debug(orderbook,pairs):
     sol = lp_read_solution('problem3.output')
     return print_strategy(sol,xs)
 
+def log_arbitrage(path):
+    """ Check if there is an arbitrage and save it
+
+    """
+    os.makedirs(path, exist_ok = True)
+    path_lp = os.path.join(path,"problem.lp")
+    path_lpr = os.path.join(path,"problem_replaced.lp")
+    path_sol = os.path.join(path,"problem.output")
+    path_orderbook = os.path.join(path,"orderbook.json")
+    path_pairs = os.path.join(path,"pairs.json")
+
+    kraken = Kraken()
+    kraken.load_key("keys/albus.key")
+
+    pairs = query_tradable_pairs(kraken)
+    pair_names = get_pairs_names(pairs)
+    orderbook = query_orderbook(kraken, pair_names)
+
+    save_json(path_orderbook, orderbook)
+    save_json(path_pairs, pairs)
+
+    prices = depth_matrix(orderbook, pairs)
+    prices = head_depth_matrix(prices,n=2)
+
+    save_lp(prices, path_lp)
+    xs, _ = lp_variables_names(prices)
+    lp_replace_variables(path_lp,path_lpr,xs)
+    f = open(path_sol,'w')
+    subprocess.call(['lp_solve',path_lp],stdout=f)
+    f.close()
+    sol = lp_read_solution(path_sol)
+    S,G = print_strategy(sol, xs)
+
+    if 0 == len(S.keys()):
+        shutil.rmtree(path)
+
 def lp_read_solution(fn):
     """Parse the lp solution file
 
@@ -643,7 +683,7 @@ def print_strategy(solution, xs):
 
     G = get_solution_graph(S)
 
-    return G
+    return S, G
 
 def head_depth_matrix(depth_matrix, n=5):
     """Take only first few entries from the orderbook

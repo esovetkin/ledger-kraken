@@ -1,25 +1,14 @@
 #!/bin/python
 
-from kraken import Kraken
-from functions import \
-    query_tradable_pairs, \
-    get_pairs_names, \
-    query_orderbook, \
-    depth_matrix, \
-    approximate_depth_matrix, \
-    save_lp
+from datetime import datetime
+from functions import log_arbitrage
 
 if __name__ == '__main__':
-    kraken = Kraken()
-    kraken.load_key("keys/albus.key")
+    path = os.path.join(
+        'arbitrage',
+        datetime.now().strftime('%Y%m%d-%H:%M'))
 
-    pairs = query_tradable_pairs(kraken)
-    pair_names = get_pairs_names(pairs)
-    orderbook = query_orderbook(kraken, pair_names)
+    log_arbitrage(path)
 
-    prices = depth_matrix(orderbook, pairs)
-    #prices = cluster_depth_matrix(prices)
-
-    save_lp(prices, "problem.lp")
 
 
